@@ -56,7 +56,7 @@ Each criterion is worth 25%: Innovation, Experience Design, Technical Implementa
 | Palm and sticky hold | ISDK hand grab, coin parented to wrist, release margin set at grab, no release in low confidence | Technical (hands) |
 | Servante ditch | Trigger volume along the near table edge, about 35–45 cm from the eyes | Experience Design, airplane-seat test |
 | Show-hand flourish | Open palm aimed at a target, held about 0.3 s | Experience Design |
-| Real table as stage | MRUK table detection, MR Tabletop sample placement, persistent spatial anchor, palms-flat calibration | Technical (passthrough, MRUK, anchors), purposeful passthrough |
+| Real table as stage | MRUK table detection (MR Utility Kit block), table-surface placement, persistent spatial anchor, palms-flat calibration | Technical (passthrough, MRUK, anchors), purposeful passthrough |
 | Crowd placement | MRUK room geometry; spectators fill open floor; the arc tightens near walls | Technical (untested rooms) |
 | FoV-aware layout | Crowd arc set from the Day 1 spike (target about ±30°); cues live on spectators and the mat; OVRManager glasses-FoV simulation | Experience Design, Technical (FoV) |
 | Microgesture scrolling | Trick book | Technical, Accessibility |

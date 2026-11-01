@@ -2,6 +2,7 @@
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 LATEST="$ROOT/Builds/Android/latest.txt"
 DEFAULT_APP_ID="com.n45div.misdirection"
+SIGNING_FILE_REL="secrets/android-signing.properties"
 
 latest_value() {
   # latest_value <key>: read a value written by MisdirectionBuild into Builds/Android/latest.txt

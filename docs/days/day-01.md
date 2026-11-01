@@ -12,35 +12,32 @@ Already in the repo for today:
 | One-click spike setup + scene checker | `Assets/Misdirection/Scripts/Editor/Setup/SpikeSceneSetup.cs` |
 | Build / install / upload / pull-and-analyse scripts | `tools/*.sh`, `tools/analyze_tracking_spike.py` |
 
-> Meta XR SDK v207 shipped after these scripts' API references were last checked against docs. The code only uses long-standing Core SDK APIs (`OVRHand`, `OVRCameraRig`, `OVREyeGaze`, `OVRPlugin`), but if anything fails to compile, see **Troubleshooting** at the bottom.
+> **Updated Nov 1 (evening).** The Unity project now exists in the repo (built from Unity's own Universal 3D template, Meta XR SDK **v207.0.1**). All our scripts compile against the real Unity 6000.0.66f2 + Meta v207 code (`tools/unity_compile_check.py`). Two changes from the original plan: the **MR Tabletop sample does not exist** in the v207.0.1 packages, so Main is built from Building Blocks instead; and the ISDK Gaze block falls back to **hand rays**, not head direction, on Quest 3 (open item #14), which is why we use our own `LookSource`. No Unity licence was available in the cloud, so the bootstrap below has compiled but not yet run. See [BUILD_WITHOUT_A_HEADSET.md](../BUILD_WITHOUT_A_HEADSET.md).
 
 ---
 
-## A. Create the Unity project in this repo · INT · ~45 min
+## A. Open the project · INT · ~30 min (mostly package import)
 
-1. Unity Hub → **New project** → Unity **6000.0.66f2+** → template **Universal 3D** → create it in a scratch folder **outside** the repo (e.g. `~/tmp/MisdirectionTemp`).
-2. Close Unity. Copy the temp project's `Assets/`, `Packages/` and `ProjectSettings/` into the repo root, merging `Assets/` (our `Assets/Misdirection` stays). Delete the template's `Assets/TutorialInfo` and `Assets/Readme.asset`. Don't copy `Library/`.
-3. Add the Meta packages **before** opening. Merge [docs/setup/manifest-snippet.json](../setup/manifest-snippet.json) into `Packages/manifest.json` (scoped registry + `com.meta.xr.sdk.all` 207). If `207.0.0` doesn't resolve, use the newest **207.x** that Package Manager lists. Alternative: Asset Store → *Meta XR All-in-One SDK* → Add to My Assets → Package Manager → My Assets → install 207.x.
-4. Unity Hub → **Add → Add project from disk** → the repo root. Open it.
-5. **File → Build Profiles → Android → Switch Platform.**
-6. **Meta → Tools → Project Setup Tool** → Android tab → **Fix All**, then **Apply All**. Repeat until clean.
-7. **Window → TextMeshPro → Import TMP Essential Resources** (the spike's text is invisible without it).
-8. Find **OVRManager** on the camera rig (after step B) → *Quest Features*:
-   - Hand Tracking Support: **Hands Only**
-   - Hand tracking frequency: leave the default. Don't turn on high frequency / Fast Motion Mode
-   - Passthrough Support: **Required**
-   - Anchor Support and Scene Support: **Enabled** (MRUK needs them)
-   - Eye Tracking Support: **Supported** (eyes on Quest Pro / VR Glasses; harmless on Quest 3)
-9. The Console should **not** show `[Misdirection] Meta XR Core SDK ... is not installed`. The **Misdirection** menu should show *Build* and *Day 1*.
+1. Install Unity **6000.0.66f2** exactly (Unity Hub → Installs → Install Editor → Archive, or `unityhub://6000.0.66f2/b20bc5da3050`) with **Android Build Support** (OpenJDK, Android SDK & NDK).
+2. Unity Hub → **Add → Add project from disk** → the repo root → open. The first import downloads Meta v207.0.1 and the Unity packages listed in `Packages/manifest.json` (5–15 minutes).
+3. The **Misdirection** menu should show *Setup*, *Build* and *Day 1*. The Console must not show `[Misdirection] Meta XR Core SDK ... is not installed`.
 
-## B. Scenes · INT · ~45 min
+## B. Bootstrap: settings + scenes in one click · INT · ~10 min
 
-1. **Main scene (from the MR Tabletop sample).** Package Manager → *Meta XR Interaction SDK* → **Samples** → import the **MR Tabletop** sample (the name may differ slightly in v207). Open its scene → **File → Save As** `Assets/Misdirection/Scenes/Main.unity`. Add the **MR Utility Kit** building block if the sample doesn't already have MRUK. Commit the imported sample. (Open item #8: write in the Devpost text that we started from Meta's sample.)
-2. **Spike scene.** File → New Scene (Basic) → Save As `Assets/Misdirection/Scenes/Spike.unity`. **Meta → Tools → Building Blocks** → add **Camera Rig**, **Passthrough**, **Hand Tracking**, **Eye Gaze** (the v207 Eye Gaze Interaction block). Keep exactly **one** OVRCameraRig.
-3. **Misdirection → Day 1 → Add Tracking Spike to Open Scene.**
-4. **Misdirection → Day 1 → Check Scene and Project.** Fix every `FIX` line.
-5. Build Profiles scene list: **Spike** first, **Main** second. Save both scenes.
-6. Optional Editor check: in the Meta XR Simulator with simulated hands, pinch both hands for 1 s (or right-click the *Tracking Spike* component → **Start protocol now**). The protocol should step through its conditions.
+1. **Misdirection → Setup → Run Project Bootstrap.** Watch the Console for `[Misdirection] Bootstrap 1/7 … 7/7` and then `Bootstrap done`. It:
+   - switches to Android
+   - sets Meta config: **Hands Only**, passthrough, anchors, scene, eye tracking
+   - imports TMP essentials
+   - creates `Assets/Misdirection/Scenes/Spike.unity` (Passthrough + Hand Tracking blocks + tracking spike)
+   - creates `Main.unity` (the same blocks + MR Utility Kit)
+   - sets the build list
+   - runs Meta's **Project Setup Tool → Fix All** twice
+2. Open **Meta → Tools → Project Setup Tool**. Anything still red, fix it by hand and note it here so the bootstrap can learn it.
+3. Open `Spike.unity` → **Misdirection → Day 1 → Check Scene and Project**. Every line should be `OK`.
+4. **Commit everything the bootstrap created**: scenes, `Assets/XR`, `Assets/TextMesh Pro`, `Assets/Resources/OculusProjectConfig.asset`, `ProjectSettings`, `Packages/packages-lock.json`.
+5. Optional Editor check (Windows/macOS): in the Meta XR Simulator with simulated hands, pinch both hands for 1 s (or right-click *Tracking Spike* → **Start protocol now**).
+
+If the bootstrap fails, do the same steps by hand: Building Blocks (Passthrough, Hand Tracking), then *Day 1 → Add Tracking Spike to Open Scene*, then the Project Setup Tool. Send the Console error so the bootstrap can be fixed.
 
 ## C. Signing key · SYS · ~20 min
 
@@ -115,12 +112,12 @@ Then copy the numbers into [docs/results/day-01-tracking-spike.md](../results/da
 | 0° only | **At risk.** More than 1 move in 10 lost at any turn. Flag for the Day 4 pivot decision |
 | none | Setup problem. Fix lighting and hand height and re-run before concluding |
 
-**Open item #14 (SYS).** On Quest 3, check the CSV `look` column (expect `head`). Also watch what the Eye Gaze building block's interactor does with no eye tracking: does it fall back to head direction, or to hand rays? Record the answer in OPEN_ITEMS.md.
+**Open item #14 (SYS).** Answered from the v207 source: the ISDK *Gaze Interaction* block falls back to **hand rays** without eye tracking. On device, just confirm the CSV `look` column says `head` on Quest 3.
 
 ## G. Gate 1 checklist
 
-- [ ] Unity project, Packages and ProjectSettings committed (with `.meta` files; no `Library/`)
-- [ ] Main (from MR Tabletop) and Spike scenes committed
+- [x] Unity project, Packages and ProjectSettings committed (done in the cloud on Nov 1)
+- [ ] Bootstrap run; Spike and Main scenes + generated settings committed
 - [ ] Signed release APK built from the repo (version code: ______)
 - [ ] Installed and played hands-only with controllers off
 - [ ] Live on **Competition**; installed via Invite URL on a second account
@@ -131,7 +128,7 @@ Then copy the numbers into [docs/results/day-01-tracking-spike.md](../results/da
 
 ## Troubleshooting
 
-- **Misdirection → Day 1 menu missing, or no spike component.** Our runtime and setup code only compile when `com.meta.xr.sdk.core` **≥ 207.0.0** is installed (assembly version define). Check Package Manager. If the SDK is installed but you see "type or namespace OVRHand could not be found", open `Assets/Misdirection/Scripts/Runtime/Misdirection.Runtime.asmdef` and re-add the references to the Meta XR Core assembly (`Oculus.VR`) and `Unity.TextMeshPro`.
+- **Misdirection → Day 1 menu missing, or no spike component.** Our runtime and setup code only compile when `com.meta.xr.sdk.core` **≥ 207.0.0** is installed (assembly version define). Check Package Manager. Anyone can reproduce a compile error without Unity: `python3 tools/unity_compile_check.py --unity <Editor folder>`.
 - **Text is invisible.** Import TMP Essential Resources (A.7).
 - **"Could not find both OVRHand components".** Select *Misdirection Tracking Spike* and drag the left and right OVRHand objects into the fields.
 - **Analysis warns "secret-hand position never moves".** The rig's hand anchors aren't following tracked hands. Confidence data is still valid; tell SYS.

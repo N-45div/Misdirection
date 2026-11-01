@@ -1,0 +1,94 @@
+name: build-apk
+
+# Builds the Quest APK in Unity's official Docker image for our exact editor version.
+# Needs repository secrets (Settings > Secrets and variables > Actions):
+#   UNITY_LICENSE            contents of Unity_lic.ulf  (or UNITY_EMAIL + UNITY_PASSWORD [+ UNITY_SERIAL])
+#   ANDROID_KEYSTORE_BASE64  optional: base64 of the team keystore, plus ANDROID_KEYSTORE_PASS,
+#                            ANDROID_KEY_ALIAS, ANDROID_KEY_PASS. Without it you get a debug-signed dev APK.
+# Without a licence secret the job is skipped with a warning, so pushes never go red because of it.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["Assets/**", "Packages/**", "ProjectSettings/**", "tools/unity_batch.sh", ".github/workflows/build-apk.yml"]
+
+concurrency:
+  group: build-apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+      UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+      UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+      UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      ANDROID_KEYSTORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASS }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ANDROID_KEY_PASS: ${{ secrets.ANDROID_KEY_PASS }}
+    steps:
+      - name: Check for a Unity licence secret
+        id: licence
+        run: |
+          if [ -z "$UNITY_LICENSE" ] && [ -z "$UNITY_EMAIL" ]; then
+            echo "::warning::No Unity licence secret (UNITY_LICENSE or UNITY_EMAIL/UNITY_PASSWORD). Skipping the APK build. See docs/BUILD_WITHOUT_A_HEADSET.md."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Free disk space for the Unity image
+        if: steps.licence.outputs.skip != 'true'
+        uses: jlumbroso/free-disk-space@v1.3.1
+        with:
+          tool-cache: false
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: false
+          swap-storage: true
+
+      - uses: actions/checkout@v4
+        if: steps.licence.outputs.skip != 'true'
+
+      - name: Cache Unity Library
+        if: steps.licence.outputs.skip != 'true'
+        uses: actions/cache@v4
+        with:
+          path: Library
+          key: Library-Android-${{ hashFiles('Packages/manifest.json', 'ProjectSettings/ProjectVersion.txt') }}
+          restore-keys: Library-Android-
+
+      - name: Bootstrap and build in unityci/editor
+        if: steps.licence.outputs.skip != 'true'
+        run: |
+          VERSION=$(grep -E '^m_EditorVersion:' ProjectSettings/ProjectVersion.txt | awk '{print $2}')
+          IMAGE="unityci/editor:ubuntu-${VERSION}-android-3.2.2"
+          docker pull "$IMAGE"
+          docker run --rm -v "$PWD:/project" -w /project \
+            -e UNITY_LICENSE -e UNITY_EMAIL -e UNITY_PASSWORD -e UNITY_SERIAL \
+            -e ANDROID_KEYSTORE_BASE64 -e ANDROID_KEYSTORE_PASS -e ANDROID_KEY_ALIAS -e ANDROID_KEY_PASS \
+            -e UNITY=/opt/unity/Editor/Unity \
+            "$IMAGE" bash tools/unity_batch.sh all
+          sudo chown -R "$(id -u):$(id -g)" .
+
+      - name: Collect files the bootstrap generated (commit these once)
+        if: always() && steps.licence.outputs.skip != 'true'
+        run: |
+          git config --global --add safe.directory "$PWD"
+          git ls-files -m -o --exclude-standard -- Assets ProjectSettings Packages > generated.txt || true
+          if [ -s generated.txt ]; then tar -czf generated-project-files.tgz -T generated.txt; fi
+          rm -rf secrets
+
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.licence.outputs.skip != 'true'
+        with:
+          name: misdirection-apk
+          path: |
+            Builds/Android/*.apk
+            Builds/Android/latest.txt
+            Builds/Android/unity-*.log
+            generated-project-files.tgz
+          if-no-files-found: warn

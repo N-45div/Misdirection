@@ -18,6 +18,7 @@ Entry for the Meta Horizon Start Developer Competition 2026, Gaming track (Best 
 | [docs/DESIGN.md](docs/DESIGN.md) | Game design and how each feature maps to the judging criteria |
 | [docs/OPEN_ITEMS.md](docs/OPEN_ITEMS.md) | Rules, eligibility and device questions to verify, with owners and due dates |
 | [docs/TRAILER.md](docs/TRAILER.md) | Video shot list (under 3:00) |
+| [docs/BUILD_WITHOUT_A_HEADSET.md](docs/BUILD_WITHOUT_A_HEADSET.md) | Compile checks with no Unity licence; APK builds in CI or the cloud with one |
 | `Assets/Misdirection/` | Our code and content. Everything we write lives here |
 | `tools/` | Build, install, upload and analysis scripts |
 
@@ -26,13 +27,13 @@ Entry for the Meta Horizon Start Developer Competition 2026, Gaming track (Best 
 | Day | Date | Status |
 |---|---|---|
 | 0 | Sun Nov 1 | Admin and setup. Repo started |
-| 1 | Mon Nov 2 | Code ready: tracking spike, look source, signed build pipeline. **Needs a person with a headset** to create the Unity project, build, upload and run the spike ([runbook](docs/days/day-01.md)) |
+| 1 | Mon Nov 2 | Unity project in the repo; code compiles against the real Unity 6000.0.66f2 + Meta v207.0.1. One-click bootstrap for settings and scenes. **Still needs:** a Unity licence to build the APK (Editor or CI), and a person with a Quest to run the spike ([runbook](docs/days/day-01.md)) |
 
 ## Getting started
 
-1. Install Unity **6000.0.66f2 or newer** (Unity 6) with Android Build Support (OpenJDK, Android SDK & NDK).
-2. Follow [docs/days/day-01.md](docs/days/day-01.md), step A, to create the Unity project in this folder and add Meta XR SDK v207.
-3. Our scripts compile only once `com.meta.xr.sdk.core` 207.x is installed. Until then they stay switched off, which avoids Safe Mode on the first open.
+1. Install Unity **6000.0.66f2** (Unity 6) with Android Build Support (OpenJDK, Android SDK & NDK).
+2. Unity Hub → Add project from disk → this folder. Packages (Meta XR SDK v207.0.1) import on first open.
+3. **Misdirection → Setup → Run Project Bootstrap** configures the project and creates the scenes. Then follow [docs/days/day-01.md](docs/days/day-01.md).
 
 ## Tools
 
@@ -42,7 +43,12 @@ tools/build_apk.sh --dev           # development build
 tools/install_quest.sh             # install + launch the latest APK on the connected headset
 tools/upload_competition.sh "msg"  # upload the latest release APK to the "Competition" channel
 tools/pull_spike_logs.sh alice     # pull tracking-spike CSVs from the headset and analyse them
-python3 -m unittest discover -s tools/tests -t .   # analysis tests
+python3 -m unittest discover -s tools/tests -t .   # analysis tests (Python + the game's C# scoring under Mono)
+
+# No Unity Hub needed (Linux / CI / cloud sessions):
+python3 tools/install_unity_linux.py --dest ~/unity          # editor + Android toolchain, as Hub would
+python3 tools/unity_compile_check.py --unity ~/unity/Editor  # compile everything, no licence needed
+UNITY_HOME=~/unity tools/unity_batch.sh all                  # bootstrap + APK (needs a Unity licence)
 ```
 
 The Unity Editor also has a **Misdirection** menu with the same builds plus Day 1 scene helpers.

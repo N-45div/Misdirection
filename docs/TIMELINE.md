@@ -47,9 +47,9 @@ Runbook: [days/day-00.md](days/day-00.md)
 
 ## Day 1 · Mon Nov 2 · Gate 1: pipeline end to end
 
-Runbook: [days/day-01.md](days/day-01.md). Code is ready in `Assets/Misdirection/Scripts` and `tools/`.
+Runbook: [days/day-01.md](days/day-01.md). Code is ready in `Assets/Misdirection/Scripts` and `tools/`, and compiles against the real Unity 6000.0.66f2 + Meta v207 code. APKs can also be built in CI once a Unity licence secret is added ([BUILD_WITHOUT_A_HEADSET.md](BUILD_WITHOUT_A_HEADSET.md)).
 
-- **INT**: Create the Unity project from the MR Tabletop sample (Main scene) plus a Spike scene with the Passthrough, MRUK, Hand Tracking and Eye Gaze building blocks. Run the tracking spike with 2+ testers on Quest 3 (and 3S if available). Analyse the results and set the crowd arc.
+- **INT**: Open the project (already in the repo) and run **Misdirection → Setup → Run Project Bootstrap** to create the Spike and Main scenes. Run the tracking spike with 2+ testers on Quest 3 (and 3S if available). Analyse the results and set the crowd arc.
 - **SYS**: Team keystore and signing, `tools/build_apk.sh`, install via metavr or adb. Answer open item #14 (what the Eye Gaze block falls back to on Quest 3). Verify `LookSource` reports `head` on Quest 3.
 - **PRO**: Upload the signed APK to "Competition", create the Invite URL, install through the Store on a second account or headset. Answer open items #4, #6, #7, #8, #9, #11.
 - **ART**: Finish the storyboard in [TRAILER.md](TRAILER.md). Do a 5-minute passthrough capture test (early look at #16).

@@ -14,17 +14,16 @@ namespace Misdirection.EditorTools
     public static class SpikeSceneSetup
     {
         [MenuItem("Misdirection/Day 1/Add Tracking Spike to Open Scene", priority = 100)]
-        public static void AddTrackingSpike()
+        public static void AddTrackingSpikeMenu()
         {
-            OVRCameraRig[] rigs = UnityEngine.Object.FindObjectsByType<OVRCameraRig>(FindObjectsInactive.Include, FindObjectsSortMode.None);
-            if (rigs.Length == 0)
+            OVRCameraRig rig = UnityEngine.Object.FindFirstObjectByType<OVRCameraRig>(FindObjectsInactive.Include);
+            if (rig == null)
             {
                 EditorUtility.DisplayDialog("Tracking spike",
-                    "No OVRCameraRig in this scene. Add the Camera Rig, Passthrough and Hand Tracking building blocks first " +
-                    "(Meta > Tools > Building Blocks).", "OK");
+                    "No OVRCameraRig in this scene. Add the Passthrough and Hand Tracking building blocks first " +
+                    "(Meta > Tools > Building Blocks), or run Misdirection > Setup > Run Project Bootstrap.", "OK");
                 return;
             }
-            OVRCameraRig rig = rigs[0];
 
             TrackingSpikeController existing = UnityEngine.Object.FindFirstObjectByType<TrackingSpikeController>(FindObjectsInactive.Include);
             if (existing != null)
@@ -34,20 +33,36 @@ namespace Misdirection.EditorTools
                 return;
             }
 
+            TrackingSpikeController spike = AddTrackingSpike(rig, true);
+            Selection.activeGameObject = spike.gameObject;
+        }
+
+        /// <summary>Finds the scene's LookSource or creates one, wired to OVREyeGaze when present.</summary>
+        public static LookSource EnsureLookSource()
+        {
             LookSource look = UnityEngine.Object.FindFirstObjectByType<LookSource>(FindObjectsInactive.Include);
-            if (look == null)
+            if (look != null)
             {
-                GameObject lookGo = new GameObject("Misdirection Look Source");
-                Undo.RegisterCreatedObjectUndo(lookGo, "Add Look Source");
-                look = lookGo.AddComponent<LookSource>();
-                OVREyeGaze gaze = UnityEngine.Object.FindFirstObjectByType<OVREyeGaze>(FindObjectsInactive.Include);
-                if (gaze != null)
-                {
-                    SerializedObject lookSo = new SerializedObject(look);
-                    lookSo.FindProperty("eyeGaze").objectReferenceValue = gaze;
-                    lookSo.ApplyModifiedPropertiesWithoutUndo();
-                }
+                return look;
             }
+
+            GameObject lookGo = new GameObject("Misdirection Look Source");
+            Undo.RegisterCreatedObjectUndo(lookGo, "Add Look Source");
+            look = lookGo.AddComponent<LookSource>();
+            OVREyeGaze gaze = UnityEngine.Object.FindFirstObjectByType<OVREyeGaze>(FindObjectsInactive.Include);
+            if (gaze != null)
+            {
+                SerializedObject lookSo = new SerializedObject(look);
+                lookSo.FindProperty("eyeGaze").objectReferenceValue = gaze;
+                lookSo.ApplyModifiedPropertiesWithoutUndo();
+            }
+            return look;
+        }
+
+        /// <summary>Adds the tracking spike to the open scene, wired to the rig, look source and both hands.</summary>
+        public static TrackingSpikeController AddTrackingSpike(OVRCameraRig rig, bool interactive)
+        {
+            LookSource look = EnsureLookSource();
 
             GameObject go = new GameObject("Misdirection Tracking Spike");
             Undo.RegisterCreatedObjectUndo(go, "Add Tracking Spike");
@@ -65,17 +80,25 @@ namespace Misdirection.EditorTools
             so.ApplyModifiedPropertiesWithoutUndo();
 
             EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
-            Selection.activeGameObject = go;
 
             if (left == null || right == null)
             {
-                Debug.LogWarning("[Misdirection] Added the tracking spike, but could not match both OVRHand components to " +
-                                 "left/right. Assign them on 'Misdirection Tracking Spike' or add the Hand Tracking building block.");
+                string message = "Added the tracking spike, but could not match both OVRHand components to left/right. " +
+                                 "Assign them on 'Misdirection Tracking Spike' or add the Hand Tracking building block.";
+                if (interactive)
+                {
+                    Debug.LogWarning("[Misdirection] " + message);
+                }
+                else
+                {
+                    throw new InvalidOperationException(message);
+                }
             }
             else
             {
-                Debug.Log("[Misdirection] Added the tracking spike. Save the scene, put it first in Build Profiles, then build.");
+                Debug.Log("[Misdirection] Added the tracking spike.");
             }
+            return spike;
         }
 
         [MenuItem("Misdirection/Day 1/Check Scene and Project", priority = 101)]
@@ -250,7 +273,16 @@ namespace Misdirection.EditorTools
         {
             try
             {
-                Type configType = typeof(OVRCameraRig).Assembly.GetType("OVRProjectConfig");
+                // OVRProjectConfig lives in the Oculus.VR.Editor assembly (v207), not in Oculus.VR.
+                Type configType = null;
+                foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies())
+                {
+                    configType = assembly.GetType("OVRProjectConfig");
+                    if (configType != null)
+                    {
+                        break;
+                    }
+                }
                 if (configType == null)
                 {
                     return null;

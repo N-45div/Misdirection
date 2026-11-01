@@ -13,13 +13,13 @@ Status: ⬜ open · 🟨 in progress / escalated · ✅ verified · ❌ blocker
 | 5 | Age of majority for every member | 2025 required 18+ and local majority | Devpost rules | PRO | Nov 1 | ⬜ | |
 | 6 | Prize stacking (track + specials); are specials open to every division? | Decides whether to spend any scope on specials | Devpost rules "Prizes" | PRO | Nov 2 | ⬜ | |
 | 7 | Special-award definitions, amounts ($25k vs $20k), names | Only captured second-hand | Devpost overview and rules | PRO | Nov 2 | ⬜ | |
-| 8 | Do Meta SDK samples (MR Tabletop), Asset Library models and third-party assets count as "pre-existing codebases"? | The New Experience division bans them, and we start from the MR Tabletop sample | Devpost rules/FAQ; ask on the Meta forum; keep dated git history | PRO | Nov 2 | ⬜ | |
+| 8 | Do Meta SDK samples, Building Blocks, Asset Library models and third-party assets count as "pre-existing codebases"? | The New Experience division bans pre-existing codebases. (The MR Tabletop sample is not in v207.0.1, so we build from Building Blocks instead) | Devpost rules/FAQ; ask on the Meta forum; keep dated git history | PRO | Nov 2 | ⬜ | |
 | 9 | Team-size limit and Team Representative mechanics | Not found in research | Devpost rules | PRO | Nov 2 | ⬜ | |
 | 10 | Policy on AI-generated code, art, voice; open-source licences | Only AI video is called out | Devpost rules; Developer Content Guidelines | PRO | Nov 3 | ⬜ | |
 | 11 | Release channel mechanics: exact name "Competition", Invite URL, tester-account requirements | A broken judge install fails Stage One | Developer Dashboard; `hz-store-submit` skill | PRO | Nov 2 (test), Nov 16 (final) | ⬜ | Invite URL: |
 | 12 | Which device judges use (Quest 3 or 3S) | Quest 3S has no depth sensor, so depth occlusion must degrade gracefully | Devpost FAQ; ask organisers | PRO | Nov 4 | ⬜ | |
 | 13 | Hardware in hand: at least one Quest 3, ideally a 3S too | Frame rate and hand feel need a real device | Team inventory | PRO | Nov 1 | ⬜ | |
-| 14 | Does the ISDK Eye Gaze building block fall back to head direction or to hand rays on Quest 3/3S? | `LookSource` needs head direction as the look source | Device test (Day 1 runbook, step F) | SYS | Nov 2 | ⬜ | |
+| 14 | Does the ISDK Eye Gaze building block fall back to head direction or to hand rays on Quest 3/3S? | `LookSource` needs head direction as the look source | Device test (Day 1 runbook, step F) | SYS | Nov 2 | ✅ | **Hand rays.** v207.0.1 source: `GazeInteractionInstallationRoutine` calls `InjectOptionalEnableRayFallback(true)`. Our `LookSource` supplies head direction instead (Nov 1) |
 | 15 | Does Meta XR Operator (OpenXR Plugin ≥1.17) coexist with the OVRPlugin microgesture path? | The plan uses both | Device test | SYS | Nov 3 | ⬜ | |
 | 16 | Does our capture method record passthrough cleanly? | The trailer depends on mixed-reality footage | Device test | ART | Nov 6 | ⬜ | |
 | 17 | Title availability and trademark check ("Sleight" is taken on itch.io) | Store and Devpost naming | Store and web search | PRO | Nov 8 | ⬜ | |
