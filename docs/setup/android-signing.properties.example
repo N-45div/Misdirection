@@ -1,0 +1,7 @@
+# Copy to secrets/android-signing.properties (git-ignored) and fill in.
+# Environment variables MISDIRECTION_KEYSTORE, MISDIRECTION_KEYSTORE_PASS,
+# MISDIRECTION_KEY_ALIAS and MISDIRECTION_KEY_PASS override these values.
+keystore=/absolute/path/to/misdirection.keystore
+keystore_pass=
+key_alias=misdirection
+key_pass=

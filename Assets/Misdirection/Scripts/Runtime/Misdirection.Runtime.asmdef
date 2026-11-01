@@ -1,0 +1,25 @@
+{
+    "name": "Misdirection.Runtime",
+    "rootNamespace": "Misdirection",
+    "references": [
+        "Oculus.VR",
+        "Unity.TextMeshPro"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [
+        "MISDIRECTION_META_XR"
+    ],
+    "versionDefines": [
+        {
+            "name": "com.meta.xr.sdk.core",
+            "expression": "207.0.0",
+            "define": "MISDIRECTION_META_XR"
+        }
+    ],
+    "noEngineReferences": false
+}

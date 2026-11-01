@@ -1,0 +1,20 @@
+name: tools-tests
+
+on:
+  push:
+    paths: ["tools/**", "Assets/Misdirection/Scripts/Runtime/Spike/**", ".github/workflows/tools-tests.yml"]
+  pull_request:
+    paths: ["tools/**", "Assets/Misdirection/Scripts/Runtime/Spike/**"]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Analysis tests (includes the C# CSV contract check)
+        run: python -m unittest discover -s tools/tests -t . -v
+      - name: Shell syntax
+        run: for f in tools/*.sh; do bash -n "$f"; done

@@ -1,0 +1,27 @@
+{
+    "name": "Misdirection.Editor.Setup",
+    "rootNamespace": "Misdirection.EditorTools",
+    "references": [
+        "Misdirection.Runtime",
+        "Oculus.VR"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "MISDIRECTION_META_XR"
+    ],
+    "versionDefines": [
+        {
+            "name": "com.meta.xr.sdk.core",
+            "expression": "207.0.0",
+            "define": "MISDIRECTION_META_XR"
+        }
+    ],
+    "noEngineReferences": false
+}
