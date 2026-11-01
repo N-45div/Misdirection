@@ -1,0 +1,31 @@
+# Normalise text files
+* text=auto
+
+# Unity YAML: treat as text, merge with UnityYAMLMerge if configured
+*.unity     text eol=lf merge=unityyamlmerge
+*.prefab    text eol=lf merge=unityyamlmerge
+*.asset     text eol=lf merge=unityyamlmerge
+*.mat       text eol=lf merge=unityyamlmerge
+*.anim      text eol=lf merge=unityyamlmerge
+*.controller text eol=lf merge=unityyamlmerge
+*.meta      text eol=lf
+*.asmdef    text eol=lf
+*.cs        text eol=lf diff=csharp
+*.sh        text eol=lf
+*.py        text eol=lf
+
+# Binary assets. If the repo grows past ~500 MB, move these to Git LFS
+# (git lfs track "*.fbx" etc.) before adding large art or audio.
+*.png  binary
+*.jpg  binary
+*.psd  binary
+*.tga  binary
+*.exr  binary
+*.fbx  binary
+*.glb  binary
+*.wav  binary
+*.mp3  binary
+*.ogg  binary
+*.mp4  binary
+*.ttf  binary
+*.otf  binary
