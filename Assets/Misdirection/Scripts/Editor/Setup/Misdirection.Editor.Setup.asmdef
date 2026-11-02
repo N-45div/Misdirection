@@ -3,6 +3,7 @@
     "rootNamespace": "Misdirection.EditorTools",
     "references": [
         "Misdirection.Runtime",
+        "Misdirection.Core",
         "Oculus.VR",
         "Oculus.VR.Editor",
         "Meta.XR.BuildingBlocks.Editor",

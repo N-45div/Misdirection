@@ -56,6 +56,8 @@ Runbook: [days/day-01.md](days/day-01.md). Code is ready in `Assets/Misdirection
 
 ## Day 2 · Tue Nov 3 · Secret-hand verbs
 
+Runbook: [days/day-02.md](days/day-02.md). Code written early on Nov 2 and unit-tested; today is on-device tuning.
+
 - **INT**: Pinch-palm via ISDK hand grab. Coin parented to the wrist. Release margin set from thumb–index distance at grab time. No release while confidence is low. Servante trigger volume along the near table edge (35–45 cm from the eyes). Hand states: tracked → low-confidence tint → frozen/faded → blend-back.
 - **SYS**: Per-attempt logging (success/fail + reason) so "19 of 20" is measured, not guessed. Coexistence test for Operator and microgestures (#15). An agent-driven deploy loop (`metavr`).
 - **ART**: Coin model. Sounds for pickup, palm, servante drop and reveal. Hand-tint material.

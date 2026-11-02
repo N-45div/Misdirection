@@ -28,6 +28,7 @@ Entry for the Meta Horizon Start Developer Competition 2026, Gaming track (Best 
 |---|---|---|
 | 0 | Sun Nov 1 | Admin and setup. Repo started |
 | 1 | Mon Nov 2 | Unity project in the repo; code compiles against the real Unity 6000.0.66f2 + Meta v207.0.1. One-click bootstrap for settings and scenes. **Still needs:** a Unity licence to build the APK (Editor or CI), and a person with a Quest to run the spike ([runbook](docs/days/day-01.md)) |
+| 2 | Tue Nov 3 | **Code written early (Nov 2):** hand presence (tint/freeze/blend), sticky pinch grip, table calibration, servante, coin, ditch practice with a live 19/20 score and logs. Compiles against the real SDK; 21 unit tests on the core rules. Needs on-device tuning ([runbook](docs/days/day-02.md)) |
 
 ## Getting started
 
@@ -42,8 +43,9 @@ tools/build_apk.sh                 # signed release APK -> Builds/Android/ (Edit
 tools/build_apk.sh --dev           # development build
 tools/install_quest.sh             # install + launch the latest APK on the connected headset
 tools/upload_competition.sh "msg"  # upload the latest release APK to the "Competition" channel
-tools/pull_spike_logs.sh alice     # pull tracking-spike CSVs from the headset and analyse them
-python3 -m unittest discover -s tools/tests -t .   # analysis tests (Python + the game's C# scoring under Mono)
+tools/pull_logs.sh spike alice     # pull tracking-spike CSVs from the headset and analyse them
+tools/pull_logs.sh ditch alice     # same for Day 2 ditch-practice logs
+python3 -m unittest discover -s tools/tests -t .   # all tests: analysis + the game's core C# rules under Mono
 
 # No Unity Hub needed (Linux / CI / cloud sessions):
 python3 tools/install_unity_linux.py --dest ~/unity          # editor + Android toolchain, as Hub would

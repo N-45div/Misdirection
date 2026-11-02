@@ -124,13 +124,13 @@ namespace Misdirection.EditorTools
             yield return null;
 
             Log("4/7 Spike scene");
-            foreach (object step in BuildScene(SpikeScenePath, new[] { PassthroughBlock, HandTrackingBlock }, true))
+            foreach (object step in BuildScene(SpikeScenePath, new[] { PassthroughBlock, HandTrackingBlock }, SceneContent.TrackingSpike))
             {
                 yield return step;
             }
 
-            Log("5/7 Main scene");
-            foreach (object step in BuildScene(MainScenePath, new[] { PassthroughBlock, HandTrackingBlock, MrukBlock }, false))
+            Log("5/7 Main scene (Day 2 ditch practice)");
+            foreach (object step in BuildScene(MainScenePath, new[] { PassthroughBlock, HandTrackingBlock, MrukBlock }, SceneContent.DitchPractice))
             {
                 yield return step;
             }
@@ -162,7 +162,9 @@ namespace Misdirection.EditorTools
             OVRProjectConfig.CommitProjectConfig(config);
         }
 
-        private static IEnumerable<object> BuildScene(string path, string[] blockIds, bool addSpike)
+        private enum SceneContent { TrackingSpike, DitchPractice }
+
+        private static IEnumerable<object> BuildScene(string path, string[] blockIds, SceneContent content)
         {
             if (File.Exists(path))
             {
@@ -191,9 +193,13 @@ namespace Misdirection.EditorTools
             }
 
             SpikeSceneSetup.EnsureLookSource();
-            if (addSpike)
+            if (content == SceneContent.TrackingSpike)
             {
                 SpikeSceneSetup.AddTrackingSpike(rig, false);
+            }
+            else
+            {
+                SecretHandSetup.AddDitchPractice(rig, false);
             }
 
             Directory.CreateDirectory(Path.GetDirectoryName(path));

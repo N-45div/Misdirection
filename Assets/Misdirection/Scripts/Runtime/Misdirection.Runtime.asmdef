@@ -2,6 +2,7 @@
     "name": "Misdirection.Runtime",
     "rootNamespace": "Misdirection",
     "references": [
+        "Misdirection.Core",
         "Oculus.VR",
         "Unity.TextMeshPro"
     ],

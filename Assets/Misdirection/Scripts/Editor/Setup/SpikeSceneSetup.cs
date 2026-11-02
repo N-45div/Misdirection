@@ -221,6 +221,12 @@ namespace Misdirection.EditorTools
             EditorUtility.DisplayDialog("Misdirection scene check", sb.ToString(), "OK");
         }
 
+        /// <summary>Left and right OVRHand in the open scene (by rig hierarchy, then by name).</summary>
+        public static void FindHandsPublic(OVRCameraRig rig, out OVRHand left, out OVRHand right)
+        {
+            FindHands(rig, out left, out right);
+        }
+
         /// <summary>Match OVRHand components to sides by rig hierarchy (edit mode safe), then by name.</summary>
         private static void FindHands(OVRCameraRig rig, out OVRHand left, out OVRHand right)
         {

@@ -22,6 +22,12 @@ namespace Misdirection.Spike
         public string FilePath { get; private set; }
 
         public SpikeCsvLog(string filePath, IEnumerable<KeyValuePair<string, string>> metadata)
+            : this(filePath, metadata, Header, FormatTag)
+        {
+        }
+
+        /// <summary>A CSV with its own column header and format tag (used by other test logs).</summary>
+        public SpikeCsvLog(string filePath, IEnumerable<KeyValuePair<string, string>> metadata, string header, string formatTag)
         {
             FilePath = filePath;
             string dir = Path.GetDirectoryName(filePath);
@@ -32,12 +38,15 @@ namespace Misdirection.Spike
 
             writer = new StreamWriter(filePath, false, new UTF8Encoding(false), 1 << 16);
             writer.NewLine = "\n";
-            writer.WriteLine("# " + FormatTag);
+            if (!string.IsNullOrEmpty(formatTag))
+            {
+                writer.WriteLine("# " + formatTag);
+            }
             foreach (KeyValuePair<string, string> pair in metadata)
             {
                 writer.WriteLine("# " + pair.Key + "=" + Sanitize(pair.Value));
             }
-            writer.WriteLine(Header);
+            writer.WriteLine(header);
         }
 
         public void WriteLine(string line)
