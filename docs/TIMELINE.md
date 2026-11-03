@@ -66,6 +66,8 @@ Runbook: [days/day-02.md](days/day-02.md). Code written early on Nov 2 and unit-
 
 ## Day 3 · Wed Nov 4 · Attention model v1
 
+Runbook: [days/day-03.md](days/day-03.md). Code written and unit-tested on Nov 4; on-device check pending.
+
 - **SYS**: Each spectator's attention point = weighted blend of the look source, the latest flourish and the latest sound. Attention cones. Suspicion builds when a method happens inside a cone. Stare discomfort (a spectator looks away after being stared at too long, often at your hands).
 - **INT**: Show-hand flourish: open palm aimed at a target, held about 0.3 s, never a palm-facing pinch.
 - **ART**: Greybox spectators with code-driven head and eye look-at. Debug "Magician's Eye" cone visual.

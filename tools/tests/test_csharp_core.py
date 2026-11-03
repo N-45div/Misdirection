@@ -23,7 +23,8 @@ class CoreLogic(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             exe = os.path.join(tmp, "coretests.exe")
             subprocess.run(["mcs", "-nologo", "-out:" + exe, "-r:System.Numerics.Vectors", "-r:System.Numerics",
-                            *sources, os.path.join(HERE, "csharp", "MiniTest.cs"), os.path.join(HERE, "csharp", "CoreTests.cs")],
+                            *sources, os.path.join(HERE, "csharp", "MiniTest.cs"),
+                            *sorted(glob.glob(os.path.join(HERE, "csharp", "*Tests.cs")))],
                            check=True)
             run = subprocess.run(["mono", exe], capture_output=True, text=True)
         failures = [line for line in run.stdout.splitlines() if line.startswith("FAIL")]

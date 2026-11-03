@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using Misdirection.Audience;
+using Misdirection.Core.Crowd;
 using Misdirection.Core.Hands;
 using Misdirection.Core.Tricks;
 using Misdirection.Hands;
@@ -34,6 +36,8 @@ namespace Misdirection.Tricks
         [SerializeField] private TableCalibrator table;
         [SerializeField] private CoinActor coin;
         [SerializeField] private LookSource lookSource;
+        [Tooltip("Optional (Day 3): the audience. Ditches report whether anyone saw them.")]
+        [SerializeField] private Crowd crowd;
 
         [SerializeField] private PinchGripSettings grip = new PinchGripSettings();
         [Tooltip("The pinch point must be this close to the coin to pick it up (metres).")]
@@ -56,6 +60,11 @@ namespace Misdirection.Tricks
         private SpikeCsvLog log;
 
         public DitchTrialRecorder Trials { get { return trials; } }
+
+        public void SetCrowd(Crowd audience)
+        {
+            crowd = audience;
+        }
 
         public void Configure(TrackedHand left, TrackedHand right, TableCalibrator tableCalibrator, CoinActor coinActor, LookSource look)
         {
@@ -129,6 +138,14 @@ namespace Misdirection.Tricks
                 table.Zone.Update(table.Frame.ToLocal(holder.StablePalm.position.ToNumerics()));
                 trials.Tick(now, holder.Presence.State == HandPresenceState.Lost, holder.Presence.State == HandPresenceState.Uncertain);
                 coin.ShowHeld(holder.StablePalm);
+                if (crowd != null)
+                {
+                    crowd.ExposeSecret(holder.StablePalm.position);
+                }
+            }
+            else if (crowd != null)
+            {
+                crowd.ClearSecret();
             }
 
             if (resetAt > 0 && now >= resetAt)
@@ -176,18 +193,40 @@ namespace Misdirection.Tricks
                 {
                     coin.ShowDitched();
                     Play(ditchTone);
-                    lastMessage = "<color=#7CFC00>Ditched.</color> Clean.";
+                    lastMessage = "<color=#7CFC00>Ditched.</color> " + WitnessLine(hand.StablePalm.position, 1f);
                     Finish(now, TrialOutcome.Ditched, distance);
                 }
                 else
                 {
                     coin.ShowExposed(hand.StablePalm.position, table.Frame.Origin.Y, TableRotation());
                     Play(exposedTone);
+                    if (crowd != null)
+                    {
+                        // The clink draws eyes to the coin, and anyone already looking saw the slip.
+                        crowd.MakeSound(hand.StablePalm.position);
+                        crowd.ReportMethod(hand.StablePalm.position, 0.6f);
+                    }
                     lastMessage = "<color=#FF6347>Exposed</color> " + Mathf.RoundToInt(distance * 100f) + " cm from the servante.";
                     Finish(now, TrialOutcome.Exposed, distance);
                 }
                 resetAt = now + resetDelay;
             }
+        }
+
+        /// <summary>Reports a secret move to the crowd and says who (if anyone) saw it.</summary>
+        private string WitnessLine(Vector3 point, float severity)
+        {
+            if (crowd == null)
+            {
+                return "Clean.";
+            }
+            WitnessReport report = crowd.ReportMethod(point, severity);
+            if (report.Unseen)
+            {
+                return "<color=#7CFC00>Nobody saw it.</color>";
+            }
+            return "<color=#FF9800>The " + crowd.NameOf(report.SeenBy) + " saw it</color> (" +
+                   Mathf.RoundToInt(report.MaxCoverage * 100f) + "%).";
         }
 
         private void Finish(double now, TrialOutcome outcome, float distance)
@@ -263,8 +302,9 @@ namespace Misdirection.Tricks
                 ? "Target: 19 of 20 ditched"
                 : "Last " + attempts + ": <b>" + successes + " ditched</b>" +
                   (trials.MeetsExitCriterion() ? "  <color=#7CFC00>Day 2 target met</color>" : "  (target 19/20)");
+            string crowdLine = crowd != null && crowd.Spectators.Count > 0 ? "\n<size=55%>" + crowd.Summary() + "</size>" : "";
             SetHud("<b>Ditch practice</b>  ·  " + score + "\n" + status +
-                   "\n<size=60%>" + HandLine("L", leftHand) + "   " + HandLine("R", rightHand) + "</size>");
+                   "\n<size=60%>" + HandLine("L", leftHand) + "   " + HandLine("R", rightHand) + "</size>" + crowdLine);
         }
 
         private static string HandLine(string label, TrackedHand hand)

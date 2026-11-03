@@ -4,6 +4,7 @@ using System.IO;
 using System.Reflection;
 using System.Threading.Tasks;
 using Meta.XR.BuildingBlocks.Editor;
+using Misdirection.Tricks;
 using TMPro;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -129,7 +130,7 @@ namespace Misdirection.EditorTools
                 yield return step;
             }
 
-            Log("5/7 Main scene (Day 2 ditch practice)");
+            Log("5/7 Main scene (ditch practice + crowd)");
             foreach (object step in BuildScene(MainScenePath, new[] { PassthroughBlock, HandTrackingBlock, MrukBlock }, SceneContent.DitchPractice))
             {
                 yield return step;
@@ -199,7 +200,8 @@ namespace Misdirection.EditorTools
             }
             else
             {
-                SecretHandSetup.AddDitchPractice(rig, false);
+                DitchPractice practice = SecretHandSetup.AddDitchPractice(rig, false);
+                CrowdSetup.AddCrowd(practice, false);
             }
 
             Directory.CreateDirectory(Path.GetDirectoryName(path));

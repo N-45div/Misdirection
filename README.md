@@ -14,7 +14,7 @@ Entry for the Meta Horizon Start Developer Competition 2026, Gaming track (Best 
 | Path | What it is |
 |---|---|
 | [docs/TIMELINE.md](docs/TIMELINE.md) | Day-by-day plan from Nov 1 to Nov 18, split by role, with gates, cut order and pivot rule |
-| [docs/days/](docs/days/) | Detailed runbook for each day as it starts. **Today's: [day-01.md](docs/days/day-01.md)** |
+| [docs/days/](docs/days/) | Detailed runbook for each day as it starts. **Today's: [day-03.md](docs/days/day-03.md)** |
 | [docs/DESIGN.md](docs/DESIGN.md) | Game design and how each feature maps to the judging criteria |
 | [docs/OPEN_ITEMS.md](docs/OPEN_ITEMS.md) | Rules, eligibility and device questions to verify, with owners and due dates |
 | [docs/TRAILER.md](docs/TRAILER.md) | Video shot list (under 3:00) |
@@ -29,6 +29,7 @@ Entry for the Meta Horizon Start Developer Competition 2026, Gaming track (Best 
 | 0 | Sun Nov 1 | Admin and setup. Repo started |
 | 1 | Mon Nov 2 | Unity project in the repo; code compiles against the real Unity 6000.0.66f2 + Meta v207.0.1. One-click bootstrap for settings and scenes. **Still needs:** a Unity licence to build the APK (Editor or CI), and a person with a Quest to run the spike ([runbook](docs/days/day-01.md)) |
 | 2 | Tue Nov 3 | **Code written early (Nov 2):** hand presence (tint/freeze/blend), sticky pinch grip, table calibration, servante, coin, ditch practice with a live 19/20 score and logs. Compiles against the real SDK; 21 unit tests on the core rules. Needs on-device tuning ([runbook](docs/days/day-02.md)) |
+| 3 | Wed Nov 4 | Crowd attention model: where you look, they look; eye contact locks; staring backfires; flourishes and sounds; Tourist/Kid/Skeptic/Filmer/Regular; cones, suspicion. Greybox spectators with head/eye look-at and Magician's Eye cones; ditches report who saw them. 39 core tests. Needs on-device tuning ([runbook](docs/days/day-03.md)) |
 
 ## Getting started
 

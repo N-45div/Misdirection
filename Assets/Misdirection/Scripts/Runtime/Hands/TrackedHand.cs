@@ -59,6 +59,9 @@ namespace Misdirection.Hands
         /// <summary>Set by whoever gives this hand something to carry; adds smoothing.</summary>
         public bool Carrying { get; set; }
 
+        /// <summary>Unit vector out of the palm (last tracked value; zero until the knuckles are known).</summary>
+        public Vector3 PalmNormal { get; private set; }
+
         public void Configure(HandId handSide, OVRHand ovrHand, OVRSkeleton ovrSkeleton)
         {
             side = handSide;
@@ -124,6 +127,11 @@ namespace Misdirection.Hands
                 {
                     thumbIndex = Vector3.Distance(thumbTip.position, indexTip.position);
                     PinchPoint = (thumbTip.position + indexTip.position) * 0.5f;
+                }
+                if (indexKnuckle != null && ringKnuckle != null)
+                {
+                    PalmNormal = HandGeometry.PalmNormal(wrist.position.ToNumerics(), indexKnuckle.position.ToNumerics(),
+                        ringKnuckle.position.ToNumerics(), side == HandId.Right).ToUnity();
                 }
                 openness = HandOpenness.Combine(
                     FingerOpenness(indexTip, indexKnuckle, wrist.position),
