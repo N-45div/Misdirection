@@ -27,6 +27,7 @@ namespace Misdirection.EditorTools
     {
         public const string SpikeScenePath = "Assets/Misdirection/Scenes/Spike.unity";
         public const string MainScenePath = "Assets/Misdirection/Scenes/Main.unity";
+        public const string ShowScenePath = "Assets/Misdirection/Scenes/Show.unity";
 
         // Building Block IDs from Meta XR SDK v207 (BlockData assets). Camera Rig comes in as a dependency.
         private const string PassthroughBlock = "f0540b20-dfd6-420e-b20d-c270f88dc77e";
@@ -106,46 +107,55 @@ namespace Misdirection.EditorTools
 
         private static IEnumerator<object> Steps()
         {
-            Log("1/7 Android build target");
+            Log("1/8 Android build target");
             if (EditorUserBuildSettings.activeBuildTarget != BuildTarget.Android)
             {
                 EditorUserBuildSettings.SwitchActiveBuildTarget(BuildTargetGroup.Android, BuildTarget.Android);
             }
             yield return null;
 
-            Log("2/7 Meta project config: hands only, passthrough, anchors, scene, eye tracking");
+            Log("2/8 Meta project config: hands only, passthrough, anchors, scene, eye tracking");
             ConfigureMetaProject();
             yield return null;
 
-            Log("3/7 TextMesh Pro essentials");
+            Log("3/8 TextMesh Pro essentials");
             if (!AssetDatabase.IsValidFolder("Assets/TextMesh Pro"))
             {
                 TMP_PackageResourceImporter.ImportResources(true, false, false);
             }
             yield return null;
 
-            Log("4/7 Spike scene");
+            Log("4/8 Spike scene");
             foreach (object step in BuildScene(SpikeScenePath, new[] { PassthroughBlock, HandTrackingBlock }, SceneContent.TrackingSpike))
             {
                 yield return step;
             }
 
-            Log("5/7 Main scene (ditch practice + crowd)");
+            Log("5/8 Main scene (ditch practice + crowd)");
             foreach (object step in BuildScene(MainScenePath, new[] { PassthroughBlock, HandTrackingBlock, MrukBlock }, SceneContent.DitchPractice))
             {
                 yield return step;
             }
 
-            Log("6/7 Build scene list: Spike, Main");
+            Log("6/8 Show scene (Trick 1 + crowd)");
+            foreach (object step in BuildScene(ShowScenePath, new[] { PassthroughBlock, HandTrackingBlock }, SceneContent.Show))
+            {
+                yield return step;
+            }
+
+            // The first scene is what the APK opens: the show for playtests. Spike and Main stay in the build
+            // (pick one with MISDIRECTION_SCENES when building a test APK).
+            Log("7/8 Build scene list: Show, Main, Spike");
             EditorBuildSettings.scenes = new[]
             {
-                new EditorBuildSettingsScene(SpikeScenePath, true),
+                new EditorBuildSettingsScene(ShowScenePath, true),
                 new EditorBuildSettingsScene(MainScenePath, true),
+                new EditorBuildSettingsScene(SpikeScenePath, true),
             };
             yield return null;
 
             // Fixes can unlock further fixes (e.g. after the XR loader is assigned), so run twice.
-            Log("7/7 Meta Project Setup Tool: Fix All");
+            Log("8/8 Meta Project Setup Tool: Fix All");
             yield return OVRProjectSetup.FixAllAsync(BuildTargetGroup.Android);
             yield return null;
             yield return OVRProjectSetup.FixAllAsync(BuildTargetGroup.Android);
@@ -163,7 +173,7 @@ namespace Misdirection.EditorTools
             OVRProjectConfig.CommitProjectConfig(config);
         }
 
-        private enum SceneContent { TrackingSpike, DitchPractice }
+        private enum SceneContent { TrackingSpike, DitchPractice, Show }
 
         private static IEnumerable<object> BuildScene(string path, string[] blockIds, SceneContent content)
         {
@@ -197,6 +207,11 @@ namespace Misdirection.EditorTools
             if (content == SceneContent.TrackingSpike)
             {
                 SpikeSceneSetup.AddTrackingSpike(rig, false);
+            }
+            else if (content == SceneContent.Show)
+            {
+                TrickDirector director = SecretHandSetup.AddTrick(rig, false);
+                CrowdSetup.AddCrowd(director, false);
             }
             else
             {

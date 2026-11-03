@@ -30,7 +30,7 @@ Already in the repo for today:
    - imports TMP essentials
    - creates `Assets/Misdirection/Scenes/Spike.unity` (Passthrough + Hand Tracking blocks + tracking spike)
    - creates `Main.unity` (the same blocks + MR Utility Kit)
-   - sets the build list
+   - sets the build list (Show first since Day 4; build the spike with `MISDIRECTION_SCENES=Assets/Misdirection/Scenes/Spike.unity tools/build_apk.sh`)
    - runs Meta's **Project Setup Tool → Fix All** twice
 2. Open **Meta → Tools → Project Setup Tool**. Anything still red, fix it by hand and note it here so the bootstrap can learn it.
 3. Open `Spike.unity` → **Misdirection → Day 1 → Check Scene and Project**. Every line should be `OK`.

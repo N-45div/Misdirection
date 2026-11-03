@@ -59,6 +59,15 @@ namespace Misdirection.Tricks
             coin.SetPositionAndRotation(Vector3.Lerp(coin.position, palm.position, k), Quaternion.Slerp(coin.rotation, palm.rotation, k));
         }
 
+        /// <summary>Place the coin anywhere (used for animated flights such as a production).</summary>
+        public void ShowAt(Vector3 position, Quaternion rotation)
+        {
+            following = false;
+            fallT = 1f;
+            coin.gameObject.SetActive(true);
+            coin.SetPositionAndRotation(position, rotation);
+        }
+
         public void ShowDitched()
         {
             following = false;

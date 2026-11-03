@@ -21,7 +21,11 @@ namespace Misdirection.EditorTools
                 Debug.Log("[Misdirection] This scene already has a crowd.");
                 return;
             }
-            DitchPractice practice = UnityEngine.Object.FindFirstObjectByType<DitchPractice>(FindObjectsInactive.Include);
+            MonoBehaviour practice = UnityEngine.Object.FindFirstObjectByType<DitchPractice>(FindObjectsInactive.Include);
+            if (practice == null)
+            {
+                practice = UnityEngine.Object.FindFirstObjectByType<TrickDirector>(FindObjectsInactive.Include);
+            }
             if (practice == null)
             {
                 EditorUtility.DisplayDialog("Crowd",
@@ -32,8 +36,11 @@ namespace Misdirection.EditorTools
             Selection.activeGameObject = AddCrowd(practice, true).gameObject;
         }
 
-        /// <summary>Adds a crowd wired to the practice's table, hands and look source, and tells the practice about it.</summary>
-        public static Crowd AddCrowd(DitchPractice practice, bool interactive)
+        /// <summary>
+        /// Adds a crowd wired to the scene's table, hands and look source, and hands it to <paramref name="user"/>
+        /// (a DitchPractice or TrickDirector: anything with a serialized "crowd" field).
+        /// </summary>
+        public static Crowd AddCrowd(MonoBehaviour user, bool interactive)
         {
             TableCalibrator table = UnityEngine.Object.FindFirstObjectByType<TableCalibrator>(FindObjectsInactive.Include);
             LookSource look = SpikeSceneSetup.EnsureLookSource();
@@ -70,11 +77,15 @@ namespace Misdirection.EditorTools
             so.FindProperty("rightHand").objectReferenceValue = right;
             so.ApplyModifiedPropertiesWithoutUndo();
 
-            if (practice != null)
+            if (user != null)
             {
-                SerializedObject ps = new SerializedObject(practice);
-                ps.FindProperty("crowd").objectReferenceValue = crowd;
-                ps.ApplyModifiedPropertiesWithoutUndo();
+                SerializedObject us = new SerializedObject(user);
+                SerializedProperty field = us.FindProperty("crowd");
+                if (field != null)
+                {
+                    field.objectReferenceValue = crowd;
+                    us.ApplyModifiedPropertiesWithoutUndo();
+                }
             }
 
             EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());

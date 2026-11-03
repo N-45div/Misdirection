@@ -76,6 +76,8 @@ Runbook: [days/day-03.md](days/day-03.md). Code written and unit-tested on Nov 4
 
 ## Day 4 · Thu Nov 5 · Gate 2: fun gate
 
+Runbook: [days/day-04.md](days/day-04.md). Trick 1 written and unit-tested on Nov 4; Show.unity is the APK's first scene.
+
 - **INT**: Produce-from-spectator: ISDK v207 gaze interactor + pinch on spectator faces (hit area > 3°).
 - **SYS**: Trick flow (engage → misdirect → execute → reveal). Amazement score stub.
 - **ART**: Placeholder gasp and applause audio. Reveal VFX.

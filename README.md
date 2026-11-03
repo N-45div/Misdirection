@@ -30,6 +30,7 @@ Entry for the Meta Horizon Start Developer Competition 2026, Gaming track (Best 
 | 1 | Mon Nov 2 | Unity project in the repo; code compiles against the real Unity 6000.0.66f2 + Meta v207.0.1. One-click bootstrap for settings and scenes. **Still needs:** a Unity licence to build the APK (Editor or CI), and a person with a Quest to run the spike ([runbook](docs/days/day-01.md)) |
 | 2 | Tue Nov 3 | **Code written early (Nov 2):** hand presence (tint/freeze/blend), sticky pinch grip, table calibration, servante, coin, ditch practice with a live 19/20 score and logs. Compiles against the real SDK; 21 unit tests on the core rules. Needs on-device tuning ([runbook](docs/days/day-02.md)) |
 | 3 | Wed Nov 4 | Crowd attention model: where you look, they look; eye contact locks; staring backfires; flourishes and sounds; Tourist/Kid/Skeptic/Filmer/Regular; cones, suspicion. Greybox spectators with head/eye look-at and Magician's Eye cones; ditches report who saw them. 39 core tests. Needs on-device tuning ([runbook](docs/days/day-03.md)) |
+| 4 | Thu Nov 5 | **Code written early (Nov 4):** Trick 1 (show, misdirect, ditch, empty-hand reveal, steal, produce from a spectator's ear), amazement and tips, applause/gasp/heckle, Show.unity. 48 core tests. Fun-gate playtest script and go/pivot sheet ([runbook](docs/days/day-04.md)) |
 
 ## Getting started
 

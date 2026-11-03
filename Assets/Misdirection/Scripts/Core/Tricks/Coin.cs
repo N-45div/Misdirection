@@ -37,6 +37,18 @@ namespace Misdirection.Core.Tricks
             return true;
         }
 
+        /// <summary>Secretly take the coin back out of the servante (a steal). Returns false unless it was ditched.</summary>
+        public bool TrySteal(HandId hand)
+        {
+            if (State != CoinState.Ditched || hand == HandId.None)
+            {
+                return false;
+            }
+            State = CoinState.Held;
+            Holder = hand;
+            return true;
+        }
+
         /// <summary>Release from <paramref name="hand"/>. Returns the new state (unchanged if that hand wasn't holding).</summary>
         public CoinState Release(HandId hand, bool insideServante)
         {

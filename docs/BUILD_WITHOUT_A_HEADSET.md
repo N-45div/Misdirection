@@ -35,7 +35,7 @@ Result on Nov 1: all Meta assemblies (Core, Core Editor, Interaction, MRUK, Plat
 3. Imports TextMesh Pro essentials
 4. Builds `Spike.unity` from the Passthrough + Hand Tracking building blocks, plus the tracking spike
 5. Builds `Main.unity` from the same blocks plus the MR Utility Kit block
-6. Sets the build list
+6. Builds `Show.unity` (Trick 1 + crowd) and sets the build list: Show, Main, Spike
 7. Runs Meta's Project Setup Tool **Fix All** twice
 
 Then `MisdirectionBuild` makes the APK. The bootstrap compiles against the real SDK but has **not been run yet**, because no licence was available on Nov 1. Expect one or two fixes on its first real run.

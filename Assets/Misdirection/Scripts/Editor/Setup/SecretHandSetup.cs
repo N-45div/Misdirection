@@ -77,6 +77,69 @@ namespace Misdirection.EditorTools
             return practice;
         }
 
+        [MenuItem("Misdirection/Day 4/Add Trick 1 (Vanish + Produce) to Open Scene", priority = 400)]
+        public static void AddTrickMenu()
+        {
+            OVRCameraRig rig = UnityEngine.Object.FindFirstObjectByType<OVRCameraRig>(FindObjectsInactive.Include);
+            if (rig == null)
+            {
+                EditorUtility.DisplayDialog("Trick 1", "No OVRCameraRig in this scene. Run Misdirection > Setup > Run Project Bootstrap.", "OK");
+                return;
+            }
+            if (UnityEngine.Object.FindFirstObjectByType<DitchPractice>(FindObjectsInactive.Include) != null ||
+                UnityEngine.Object.FindFirstObjectByType<TrickDirector>(FindObjectsInactive.Include) != null)
+            {
+                EditorUtility.DisplayDialog("Trick 1",
+                    "This scene already has a ditch practice or a trick, and both would grab the same pinches. " +
+                    "Use the bootstrap's Show.unity, or a fresh scene with the building blocks.", "OK");
+                return;
+            }
+            TrickDirector director = AddTrick(rig, true);
+            CrowdSetup.AddCrowd(director, true);
+            Selection.activeGameObject = director.gameObject;
+        }
+
+        /// <summary>Adds tracked hands, the table calibrator, the coin and the Trick 1 director, all wired up (add the crowd after).</summary>
+        public static TrickDirector AddTrick(OVRCameraRig rig, bool interactive)
+        {
+            LookSource look = SpikeSceneSetup.EnsureLookSource();
+            OVRHand leftOvr;
+            OVRHand rightOvr;
+            SpikeSceneSetup.FindHandsPublic(rig, out leftOvr, out rightOvr);
+            if ((leftOvr == null || rightOvr == null) && !interactive)
+            {
+                throw new InvalidOperationException("Trick 1 needs both OVRHand components (Hand Tracking building block).");
+            }
+
+            GameObject handsRoot = new GameObject("Misdirection Hands");
+            Undo.RegisterCreatedObjectUndo(handsRoot, "Add Misdirection Hands");
+            TrackedHand left = CreateHand(handsRoot.transform, HandId.Left, leftOvr);
+            TrackedHand right = CreateHand(handsRoot.transform, HandId.Right, rightOvr);
+
+            GameObject root = new GameObject("Misdirection Trick 1");
+            Undo.RegisterCreatedObjectUndo(root, "Add Trick 1");
+            TableCalibrator table = root.AddComponent<TableCalibrator>();
+            Wire(table, "leftHand", left, "rightHand", right, "lookSource", look);
+            SerializedObject ts = new SerializedObject(table);
+            ts.FindProperty("showServante").boolValue = false; // in a show, the servante is the player's secret
+            ts.ApplyModifiedPropertiesWithoutUndo();
+
+            GameObject coinGo = new GameObject("Coin");
+            coinGo.transform.SetParent(root.transform, false);
+            CoinActor coin = coinGo.AddComponent<CoinActor>();
+
+            TrickDirector director = root.AddComponent<TrickDirector>();
+            Wire(director, "leftHand", left, "rightHand", right, "lookSource", look);
+            SerializedObject so = new SerializedObject(director);
+            so.FindProperty("table").objectReferenceValue = table;
+            so.FindProperty("coin").objectReferenceValue = coin;
+            so.ApplyModifiedPropertiesWithoutUndo();
+
+            EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
+            Debug.Log("[Misdirection] Added Trick 1 (tracked hands, table calibrator, coin, director).");
+            return director;
+        }
+
         private static TrackedHand CreateHand(Transform parent, HandId side, OVRHand ovrHand)
         {
             GameObject go = new GameObject(side + " Tracked Hand");

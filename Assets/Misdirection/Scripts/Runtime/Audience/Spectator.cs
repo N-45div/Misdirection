@@ -32,6 +32,12 @@ namespace Misdirection.Audience
 
         public AttentionCone Cone { get { return cone; } }
 
+        /// <summary>Just behind the right ear: where a coin gets "found".</summary>
+        public Vector3 EarPosition { get { return head != null ? head.position + head.right * 0.12f - head.forward * 0.02f : transform.position; } }
+
+        /// <summary>World position just above the head (for floating reactions).</summary>
+        public Vector3 AboveHead { get { return head != null ? head.position + Vector3.up * 0.32f : transform.position; } }
+
         /// <summary>Builds the greybox body standing at the transform's position, facing <paramref name="faceToward"/>.</summary>
         public void Build(SpectatorMind spectatorMind, Vector3 faceToward, float eyeHeightAboveFeet, bool showCone)
         {
