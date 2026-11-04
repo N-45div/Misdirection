@@ -1,15 +1,14 @@
-"""Runs the game's real C# scoring (SpikeModel.cs) under Mono and checks it matches the Python analyzer.
+"""Runs the game's real C# scoring (SpikeModel.cs) and checks it matches the Python analyzer.
 
-Skipped when mcs/mono are not installed (CI installs them).
+Uses Mono, or on Windows the compiler inside the Unity editor (csharp_toolchain.py). Skipped when neither exists.
 """
 
 import os
-import shutil
-import subprocess
 import tempfile
 import unittest
 
 from tools import analyze_tracking_spike as spike
+from tools.tests import csharp_toolchain as cs
 from tools.tests import synthetic_spike as synth
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -31,21 +30,22 @@ def mixed_profile(secret, turn, angle, repeat):
     return drops
 
 
-@unittest.skipUnless(shutil.which("mcs") and shutil.which("mono"), "mcs/mono not installed")
+@unittest.skipUnless(cs.available(), "no C# toolchain (Mono, or a Unity editor on Windows)")
 class CSharpParity(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.tmp = tempfile.TemporaryDirectory()
         cls.exe = os.path.join(cls.tmp.name, "harness.exe")
-        subprocess.run(["mcs", "-nologo", "-out:" + cls.exe, HARNESS, MODEL], check=True)
+        cs.compile_exe([HARNESS, MODEL], cls.exe)
 
     @classmethod
     def tearDownClass(cls):
         cls.tmp.cleanup()
 
     def run_harness(self, csv_path, max_fail="0.1"):
-        out = subprocess.run(["mono", self.exe, csv_path, "1.5", "0.15", max_fail], check=True,
-                             capture_output=True, text=True).stdout
+        run = cs.run_exe(self.exe, [csv_path, "1.5", "0.15", max_fail])
+        self.assertEqual(run.returncode, 0, run.stderr)
+        out = run.stdout
         cells, arcs = {}, {}
         for line in out.splitlines():
             parts = line.split()

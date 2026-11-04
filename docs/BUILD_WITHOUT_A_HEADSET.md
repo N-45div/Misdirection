@@ -15,7 +15,7 @@ What a cloud session, a CI runner or a coding agent can do for this project, and
 Unity's editor runs only with a licence, but compiling doesn't need one. `unity_compile_check.py` resolves `Packages/manifest.json` like Unity's Package Manager, finds every assembly definition, and compiles everything in dependency order with the editor's own Roslyn compiler. It runs twice: once as the Editor sees it, once as the Android IL2CPP player does.
 
 ```bash
-python3 tools/install_unity_linux.py --dest ~/unity --no-android-sdk
+python3 tools/install_unity.py --dest ~/unity --no-android-sdk
 ```
 
 ```bash
@@ -49,6 +49,23 @@ Then `MisdirectionBuild` makes the APK. The bootstrap compiles against the real 
    - Linux: `~/.local/share/unity3d/Unity/Unity_lic.ulf`
 3. Store it as a secret. **Never paste it into chat or commit it.**
 
+### Option 0: a Windows PC (fastest, used from Nov 4)
+
+No admin rights needed. In PowerShell, from the repo:
+
+```powershell
+winget install --id Unity.UnityHub --exact     # per-user app; open it once and sign in (renews the licence)
+python tools/install_unity.py --dest C:\Unity\6000.0.66f2
+```
+
+Then, in Git Bash:
+
+```bash
+tools/unity_batch.sh all    # bootstrap (scenes + settings) and a debug-signed APK in Builds/Android
+```
+
+`install_unity.py` runs Unity's own installers "as invoker", so there's no UAC prompt as long as the folder is yours (keep spaces out of it). `unity_batch.sh` finds `C:\Unity\<version>` and the licence that Unity Hub keeps in `C:\ProgramData\Unity` by itself. To open the project in the Editor, Unity Hub → Installs → Locate → `C:\Unity\6000.0.66f2\Editor\Unity.exe`.
+
 ### Option A: GitHub Actions (recommended for the team)
 
 Repository → Settings → Secrets and variables → Actions → New repository secret:
@@ -71,14 +88,14 @@ Then go to Actions → **build-apk** → Run workflow. The artifact contains:
 In the cloud environment's settings (environment menu → Edit), add an environment variable **`UNITY_LICENSE_B64`** containing `base64 -w0 Unity_lic.ulf`. A new session picks it up. Then an agent can run:
 
 ```bash
-python3 tools/install_unity_linux.py --dest ~/unity
+python3 tools/install_unity.py --dest ~/unity
 ```
 
 ```bash
 UNITY_HOME=~/unity tools/unity_batch.sh all
 ```
 
-Personal licence files are tied to a machine. If Unity rejects yours on a CI runner or cloud machine, use `UNITY_EMAIL` + `UNITY_PASSWORD` (plus `UNITY_SERIAL` for Plus/Pro) instead. Unity's own Docker images and GameCI document the current activation rules.
+Personal licences expire (the Feb 2026 one on the dev PC had lapsed by November) and are renewed by signing in to Unity Hub; re-upload the file after a renewal. They are also tied to a machine. If Unity rejects yours on a CI runner or cloud machine, use `UNITY_EMAIL` + `UNITY_PASSWORD` (plus `UNITY_SERIAL` for Plus/Pro) instead. Unity's own Docker images and GameCI document the current activation rules.
 
 ## 3. What still needs a person with a Quest
 

@@ -6,11 +6,24 @@ using UnityEngine;
 
 namespace Misdirection.Table
 {
+    /// <summary>Where the current table frame came from, most trusted first.</summary>
+    public enum TableSource
+    {
+        None,
+        /// <summary>The player's palms-flat gesture: an explicit choice, never overridden automatically.</summary>
+        Palms,
+        /// <summary>The table saved last session (spatial anchor), relocalised.</summary>
+        SavedAnchor,
+        /// <summary>Picked from the Quest's room scan (MRUK).</summary>
+        Room,
+    }
+
     /// <summary>
-    /// Finds the player's real table from the design's onboarding gesture: both palms resting flat
-    /// on the table, heels of the hands at the near edge, held still for a moment.
-    /// Day 5 adds MRUK table detection and anchors; this calibration stays as the no-table fallback.
-    /// Also draws the close-up mat and (for testing) the servante zone.
+    /// Owns the player's real table as a <see cref="TableFrame"/>. Three sources feed it: the saved
+    /// anchor from last time (<see cref="TableAnchorStore"/>), the room scan (<see cref="RoomTableFinder"/>),
+    /// and the design's onboarding gesture, both palms flat on the table with the heels of the hands at
+    /// the near edge, which always works and always wins. Also draws the close-up mat and (for testing)
+    /// the servante zone.
     /// </summary>
     [DefaultExecutionOrder(-20)]
     public sealed class TableCalibrator : MonoBehaviour
@@ -43,6 +56,7 @@ namespace Misdirection.Table
         private LineRenderer outline;
 
         public bool Calibrated { get; private set; }
+        public TableSource Source { get; private set; }
         public TableFrame Frame { get; private set; }
         public ServanteZone Zone { get { return zone; } }
 
@@ -61,11 +75,12 @@ namespace Misdirection.Table
             lookSource = look;
         }
 
-        /// <summary>Use a known table frame (MRUK, saved anchor, tests).</summary>
-        public void SetFrame(TableFrame frame)
+        /// <summary>Use a known table frame (room scan, saved anchor, tests).</summary>
+        public void SetFrame(TableFrame frame, TableSource source = TableSource.Room)
         {
             Frame = frame;
             Calibrated = true;
+            Source = source;
             zone.Reset();
             PlaceVisuals();
             if (OnCalibrated != null)
@@ -106,8 +121,8 @@ namespace Misdirection.Table
             {
                 heldFor = float.NegativeInfinity; // require letting go before the next calibration
                 Vector3 head = Head();
-                SetFrame(TableFrame.FromPalms(l.ToNumerics(), r.ToNumerics(), head.ToNumerics()));
-                Debug.Log("[Misdirection] Table calibrated at " + Frame.Origin.ToUnity() + ", facing " + Frame.Forward.ToUnity());
+                SetFrame(TableFrame.FromPalms(l.ToNumerics(), r.ToNumerics(), head.ToNumerics()), TableSource.Palms);
+                Debug.Log("[Misdirection] Table calibrated by palms at " + Frame.Origin.ToUnity() + ", facing " + Frame.Forward.ToUnity());
             }
             else if (!resting && float.IsNegativeInfinity(heldFor))
             {

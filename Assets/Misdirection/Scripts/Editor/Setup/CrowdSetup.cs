@@ -75,6 +75,7 @@ namespace Misdirection.EditorTools
             so.FindProperty("lookSource").objectReferenceValue = look;
             so.FindProperty("leftHand").objectReferenceValue = left;
             so.FindProperty("rightHand").objectReferenceValue = right;
+            so.FindProperty("room").objectReferenceValue = UnityEngine.Object.FindFirstObjectByType<RoomTableFinder>(FindObjectsInactive.Include);
             so.ApplyModifiedPropertiesWithoutUndo();
 
             if (user != null)

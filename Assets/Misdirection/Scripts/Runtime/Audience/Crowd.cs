@@ -5,6 +5,7 @@ using Misdirection.Core.Hands;
 using Misdirection.Hands;
 using Misdirection.Table;
 using UnityEngine;
+using NVector2 = System.Numerics.Vector2;
 using NVector3 = System.Numerics.Vector3;
 
 namespace Misdirection.Audience
@@ -21,6 +22,8 @@ namespace Misdirection.Audience
         [SerializeField] private LookSource lookSource;
         [SerializeField] private TrackedHand leftHand;
         [SerializeField] private TrackedHand rightHand;
+        [Tooltip("Optional (Day 5): the room scan. Spectators then stand on open floor, clear of walls and furniture.")]
+        [SerializeField] private RoomTableFinder room;
 
         [Header("Who and where")]
         [SerializeField] private Archetype[] archetypes = { Archetype.Tourist, Archetype.Kid, Archetype.Skeptic };
@@ -28,8 +31,10 @@ namespace Misdirection.Audience
         [SerializeField] private float arcHalfDegrees = 30f;
         [Tooltip("Horizontal distance from the player's eyes to the spectators (metres).")]
         [SerializeField] private float distance = 1.55f;
-        [Tooltip("Table surface height above the floor, used to stand spectators on the floor (metres).")]
+        [Tooltip("Table surface height above the floor when the room scan has no floor (metres).")]
         [SerializeField] private float tableHeightAboveFloor = 0.74f;
+        [Tooltip("Clearance and spacing rules for placing spectators in a scanned room.")]
+        [SerializeField] private CrowdLayoutSettings layout = new CrowdLayoutSettings();
 
         [Header("Attention")]
         [SerializeField] private CrowdSettings crowdSettings = new CrowdSettings();
@@ -52,6 +57,9 @@ namespace Misdirection.Audience
         private Transform gazeDot;
 
         public CrowdModel Model { get { return model; } }
+
+        /// <summary>How the last placement went, for HUDs ("open floor", "tightened near walls", ...).</summary>
+        public string LayoutNote { get; private set; }
         public IReadOnlyList<Spectator> Spectators { get { return spectators; } }
         public bool ShowCones
         {
@@ -148,11 +156,28 @@ namespace Misdirection.Audience
             }
         }
 
+        public void SetRoom(RoomTableFinder roomFinder)
+        {
+            if (room != null)
+            {
+                room.OnRoomLoaded -= OnRoomLoaded;
+            }
+            room = roomFinder;
+            if (room != null && isActiveAndEnabled)
+            {
+                room.OnRoomLoaded += OnRoomLoaded;
+            }
+        }
+
         private void OnEnable()
         {
             if (table != null)
             {
                 table.OnCalibrated += Spawn;
+            }
+            if (room != null)
+            {
+                room.OnRoomLoaded += OnRoomLoaded;
             }
         }
 
@@ -161,6 +186,19 @@ namespace Misdirection.Audience
             if (table != null)
             {
                 table.OnCalibrated -= Spawn;
+            }
+            if (room != null)
+            {
+                room.OnRoomLoaded -= OnRoomLoaded;
+            }
+        }
+
+        private void OnRoomLoaded()
+        {
+            // The scan can arrive after the table was set (palms or saved anchor): re-place around real walls.
+            if (table != null && table.Calibrated)
+            {
+                Spawn();
             }
         }
 
@@ -184,14 +222,11 @@ namespace Misdirection.Audience
             Vector3 eyes = lookSource != null && lookSource.Head != null ? lookSource.Head.position : table.Frame.Origin.ToUnity() + Vector3.up * 0.45f;
             Vector3 forward = table.Frame.Forward.ToUnity();
             Vector3 mat = Stage();
-            float floor = table.Frame.Origin.Y - tableHeightAboveFloor;
-            for (int i = 0; i < archetypes.Length; i++)
+            float floor = room != null && room.HasFloor ? room.FloorY : table.Frame.Origin.Y - tableHeightAboveFloor;
+            List<Vector3> spots = Spots(eyes, forward, floor);
+            for (int i = 0; i < spots.Count; i++)
             {
-                float t = archetypes.Length == 1 ? 0.5f : (float)i / (archetypes.Length - 1);
-                float azimuth = Mathf.Lerp(-arcHalfDegrees, arcHalfDegrees, t);
-                Vector3 dir = Quaternion.AngleAxis(azimuth, Vector3.up) * forward;
-                Vector3 feet = new Vector3(eyes.x, floor, eyes.z) + dir * distance;
-
+                Vector3 feet = spots[i];
                 SpectatorProfile profile = SpectatorProfile.For(archetypes[i]);
                 GameObject go = new GameObject(archetypes[i] + " Spectator");
                 go.transform.SetParent(transform, false);
@@ -201,7 +236,45 @@ namespace Misdirection.Audience
                 spectator.Build(mind, mat, profile.EyeHeight, showCones);
                 spectators.Add(spectator);
             }
-            Debug.Log("[Misdirection] Crowd placed: " + archetypes.Length + " spectators across ±" + arcHalfDegrees + "°.");
+            Debug.Log("[Misdirection] Crowd placed: " + spectators.Count + " spectator(s). " + LayoutNote);
+        }
+
+        /// <summary>Where each spectator stands: the room-aware layout when there's a scan, else an even arc.</summary>
+        private List<Vector3> Spots(Vector3 eyes, Vector3 forward, float floor)
+        {
+            List<Vector3> spots = new List<Vector3>();
+            if (room != null && room.RoomLoaded)
+            {
+                layout.PreferredDistance = distance;
+                layout.MaxArcHalfDegrees = arcHalfDegrees;
+                LayoutResult result;
+                float arc;
+                List<CrowdSlot> slots = CrowdLayout.Place(new NVector2(eyes.x, eyes.z), new NVector2(forward.x, forward.z),
+                    archetypes.Length, room.Walls, room.Furniture, layout, out result, out arc);
+                if (result != LayoutResult.NoSpace)
+                {
+                    foreach (CrowdSlot slot in slots)
+                    {
+                        spots.Add(new Vector3(slot.Position.X, floor, slot.Position.Y));
+                    }
+                    LayoutNote = result == LayoutResult.Open ? "Open floor across the table."
+                        : result == LayoutResult.Tightened ? "Arc tightened to ±" + Mathf.RoundToInt(arc) + "° to fit the room."
+                        : "Room fits " + slots.Count + " of " + archetypes.Length + " spectators.";
+                    return spots;
+                }
+                LayoutNote = "No open floor across the table (against a wall?): spectators may overlap the room.";
+            }
+            else
+            {
+                LayoutNote = "No room scan: standard arc.";
+            }
+            for (int i = 0; i < archetypes.Length; i++)
+            {
+                float t = archetypes.Length == 1 ? 0.5f : (float)i / (archetypes.Length - 1);
+                Vector3 dir = Quaternion.AngleAxis(Mathf.Lerp(-arcHalfDegrees, arcHalfDegrees, t), Vector3.up) * forward;
+                spots.Add(new Vector3(eyes.x, floor, eyes.z) + dir * distance);
+            }
+            return spots;
         }
 
         private void LateUpdate()

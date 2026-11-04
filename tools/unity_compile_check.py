@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import argparse
 import concurrent.futures
+import http.client
 import io
 import json
 import os
@@ -39,6 +40,7 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+import time
 import urllib.request
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Sequence, Set, Tuple
@@ -89,6 +91,34 @@ def version_matches(version: str, expression: str) -> bool:
 
 
 # --------------------------------------------------------------------------- packages
+
+
+def _download(url: str, attempts: int = 4) -> bytes:
+    """Download with retries: big package tarballs sometimes drop mid-transfer.
+
+    Prefers curl (built into Windows 10+, macOS, most Linux) because it resumes broken transfers;
+    on some networks Python's own client is cut off after ~1 MB.
+    """
+    curl = shutil.which("curl.exe" if os.name == "nt" else "curl")
+    if curl:
+        with tempfile.TemporaryDirectory() as tmp:
+            out = os.path.join(tmp, "download")
+            proc = subprocess.run([curl, "-fsSL", "--retry", str(attempts), "--retry-delay", "2", "--retry-all-errors",
+                                   "-C", "-", "-o", out, url], capture_output=True, text=True)
+            if proc.returncode == 0:
+                with open(out, "rb") as handle:
+                    return handle.read()
+            print(f"  curl failed for {url} ({proc.stderr.strip()[:120]}); trying Python's client", flush=True)
+    for attempt in range(1, attempts + 1):
+        try:
+            with urllib.request.urlopen(url, timeout=600) as response:
+                return response.read()
+        except (OSError, http.client.HTTPException) as err:
+            if attempt == attempts:
+                raise
+            print(f"  retrying {url} ({err.__class__.__name__}, attempt {attempt + 1}/{attempts})", flush=True)
+            time.sleep(2 * attempt)
+    raise AssertionError("unreachable")
 
 
 @dataclass
@@ -153,8 +183,7 @@ class PackageResolver:
                 if version not in meta.get("versions", {}):
                     raise RuntimeError(f"{name}@{version} not found in {self._registry_for(name)}")
                 url = meta["versions"][version]["dist"]["tarball"]
-                with urllib.request.urlopen(url, timeout=600) as response:
-                    data = response.read()
+                data = _download(url)
                 source = url
             if self.verbose:
                 print(f"  fetch {name}@{version} <- {source}")
@@ -373,7 +402,8 @@ def unity_defines(unity_version: str, context: str, extra: Sequence[str]) -> Lis
                 "CSHARP_7_3_OR_NEWER", "CSHARP_7_OR_LATER", "ENABLE_VR", "ENABLE_AR", "ENABLE_PROFILER",
                 "ENABLE_PHYSICS", "ENABLE_UNITYWEBREQUEST", "ENABLE_CLOTH", "UNITY_UGP_API", "PLATFORM_SUPPORTS_MONO"]
     if context == "editor":
-        defines += ["UNITY_EDITOR", "UNITY_EDITOR_64", "UNITY_EDITOR_LINUX", "ENABLE_MONO",
+        host = "UNITY_EDITOR_WIN" if os.name == "nt" else ("UNITY_EDITOR_OSX" if sys.platform == "darwin" else "UNITY_EDITOR_LINUX")
+        defines += ["UNITY_EDITOR", "UNITY_EDITOR_64", host, "ENABLE_MONO",
                     "ENABLE_UNITY_COLLECTIONS_CHECKS", "DEVELOPMENT_BUILD"]
     else:
         defines += ["ENABLE_IL2CPP", "UNITY_IL2CPP"]
@@ -392,7 +422,7 @@ class Result:
 class Compiler:
     def __init__(self, editor_data: str, out_dir: str, unity_version: str, extra_defines: Sequence[str], verbose: bool):
         self.data = editor_data
-        self.dotnet = os.path.join(editor_data, "NetCoreRuntime", "dotnet")
+        self.dotnet = os.path.join(editor_data, "NetCoreRuntime", "dotnet.exe" if os.name == "nt" else "dotnet")
         self.csc = os.path.join(editor_data, "DotNetSdkRoslyn", "csc.dll")
         self.out_dir = out_dir
         self.unity_version = unity_version

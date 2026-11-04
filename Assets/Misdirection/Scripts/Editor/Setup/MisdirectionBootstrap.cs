@@ -138,7 +138,7 @@ namespace Misdirection.EditorTools
             }
 
             Log("6/8 Show scene (Trick 1 + crowd)");
-            foreach (object step in BuildScene(ShowScenePath, new[] { PassthroughBlock, HandTrackingBlock }, SceneContent.Show))
+            foreach (object step in BuildScene(ShowScenePath, new[] { PassthroughBlock, HandTrackingBlock, MrukBlock }, SceneContent.Show))
             {
                 yield return step;
             }
@@ -160,6 +160,23 @@ namespace Misdirection.EditorTools
             yield return null;
             yield return OVRProjectSetup.FixAllAsync(BuildTargetGroup.Android);
             AssetDatabase.SaveAssets();
+        }
+
+        /// <summary>The room scan needs the scene permission; ask for it at startup (also part of Meta's Fix All).</summary>
+        private static void RequestScenePermission()
+        {
+            OVRManager manager = UnityEngine.Object.FindFirstObjectByType<OVRManager>(FindObjectsInactive.Include);
+            if (manager == null)
+            {
+                return;
+            }
+            SerializedObject so = new SerializedObject(manager);
+            SerializedProperty prop = so.FindProperty("requestScenePermissionOnStartup");
+            if (prop != null)
+            {
+                prop.boolValue = true;
+                so.ApplyModifiedPropertiesWithoutUndo();
+            }
         }
 
         private static void ConfigureMetaProject()
@@ -204,6 +221,7 @@ namespace Misdirection.EditorTools
             }
 
             SpikeSceneSetup.EnsureLookSource();
+            RequestScenePermission();
             if (content == SceneContent.TrackingSpike)
             {
                 SpikeSceneSetup.AddTrackingSpike(rig, false);

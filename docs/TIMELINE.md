@@ -86,6 +86,8 @@ Runbook: [days/day-04.md](days/day-04.md). Trick 1 written and unit-tested on No
 
 ## Day 5 · Fri Nov 6 · Robust table placement
 
+Runbook: [days/day-05.md](days/day-05.md). Room-scan table, saved anchor and room-aware crowd written and unit-tested on Nov 4.
+
 - **SYS**: MRUK table detection, spatial-anchor persistence, no-table fallback (height from palms on the table), crowd placed on open floor, arc tightens near walls.
 - **INT**: Palms-flat calibration gesture (also the onboarding moment).
 - **ART**: Close-up mat art. Passthrough capture check (#16).

@@ -14,7 +14,7 @@ Entry for the Meta Horizon Start Developer Competition 2026, Gaming track (Best 
 | Path | What it is |
 |---|---|
 | [docs/TIMELINE.md](docs/TIMELINE.md) | Day-by-day plan from Nov 1 to Nov 18, split by role, with gates, cut order and pivot rule |
-| [docs/days/](docs/days/) | Detailed runbook for each day as it starts. **Today's: [day-03.md](docs/days/day-03.md)** |
+| [docs/days/](docs/days/) | Detailed runbook for each day as it starts. **Today's: [day-05.md](docs/days/day-05.md)** |
 | [docs/DESIGN.md](docs/DESIGN.md) | Game design and how each feature maps to the judging criteria |
 | [docs/OPEN_ITEMS.md](docs/OPEN_ITEMS.md) | Rules, eligibility and device questions to verify, with owners and due dates |
 | [docs/TRAILER.md](docs/TRAILER.md) | Video shot list (under 3:00) |
@@ -31,6 +31,7 @@ Entry for the Meta Horizon Start Developer Competition 2026, Gaming track (Best 
 | 2 | Tue Nov 3 | **Code written early (Nov 2):** hand presence (tint/freeze/blend), sticky pinch grip, table calibration, servante, coin, ditch practice with a live 19/20 score and logs. Compiles against the real SDK; 21 unit tests on the core rules. Needs on-device tuning ([runbook](docs/days/day-02.md)) |
 | 3 | Wed Nov 4 | Crowd attention model: where you look, they look; eye contact locks; staring backfires; flourishes and sounds; Tourist/Kid/Skeptic/Filmer/Regular; cones, suspicion. Greybox spectators with head/eye look-at and Magician's Eye cones; ditches report who saw them. 39 core tests. Needs on-device tuning ([runbook](docs/days/day-03.md)) |
 | 4 | Thu Nov 5 | **Code written early (Nov 4):** Trick 1 (show, misdirect, ditch, empty-hand reveal, steal, produce from a spectator's ear), amazement and tips, applause/gasp/heckle, Show.unity. 48 core tests. Fun-gate playtest script and go/pivot sheet ([runbook](docs/days/day-04.md)) |
+| 5 | Fri Nov 6 | **Code written early (Nov 4):** table found from the Quest room scan (MRUK) or the palms gesture, remembered between sessions with a spatial anchor; crowd placed on open floor around real walls and furniture, arc tightens in small rooms. Builds now run on Windows without admin ([runbook](docs/days/day-05.md)) |
 
 ## Getting started
 
@@ -50,7 +51,7 @@ tools/pull_logs.sh ditch alice     # same for Day 2 ditch-practice logs
 python3 -m unittest discover -s tools/tests -t .   # all tests: analysis + the game's core C# rules under Mono
 
 # No Unity Hub needed (Linux / CI / cloud sessions):
-python3 tools/install_unity_linux.py --dest ~/unity          # editor + Android toolchain, as Hub would
+python3 tools/install_unity.py --dest ~/unity                # editor + Android toolchain, as Hub would (Linux or Windows)
 python3 tools/unity_compile_check.py --unity ~/unity/Editor  # compile everything, no licence needed
 UNITY_HOME=~/unity tools/unity_batch.sh all                  # bootstrap + APK (needs a Unity licence)
 ```

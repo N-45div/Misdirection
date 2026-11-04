@@ -4,7 +4,8 @@
     "references": [
         "Misdirection.Core",
         "Oculus.VR",
-        "Unity.TextMeshPro"
+        "Unity.TextMeshPro",
+        "meta.xr.mrutilitykit"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

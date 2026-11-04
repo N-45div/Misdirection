@@ -17,10 +17,11 @@ if [[ ! -f "$VERSION_FILE" ]]; then
   echo "error: $VERSION_FILE missing. Create the Unity project first (docs/days/day-01.md, step A)." >&2
   exit 1
 fi
-EDITOR_VERSION=$(grep -E '^m_EditorVersion:' "$VERSION_FILE" | awk '{print $2}')
+EDITOR_VERSION=$(grep -E '^m_EditorVersion:' "$VERSION_FILE" | awk '{print $2}' | tr -d '\r')
 
 if [[ -z "${UNITY:-}" ]]; then
   for candidate in \
+    "/c/Unity/$EDITOR_VERSION/Editor/Unity.exe" \
     "/Applications/Unity/Hub/Editor/$EDITOR_VERSION/Unity.app/Contents/MacOS/Unity" \
     "$HOME/Unity/Hub/Editor/$EDITOR_VERSION/Editor/Unity" \
     "/c/Program Files/Unity/Hub/Editor/$EDITOR_VERSION/Editor/Unity.exe" \
@@ -37,8 +38,10 @@ mkdir -p "$ROOT/Builds/Android"
 LOG="$ROOT/Builds/Android/build.log"
 echo "Building with Unity $EDITOR_VERSION (log: $LOG)"
 set +e
-"$UNITY" -batchmode -quit -projectPath "$ROOT" -buildTarget Android \
-  -executeMethod Misdirection.EditorTools.MisdirectionBuild.BuildFromCommandLine -logFile "$LOG"
+PROJECT_ARG="$ROOT"; LOG_ARG="$LOG"
+if command -v cygpath >/dev/null 2>&1; then PROJECT_ARG="$(cygpath -w "$ROOT")"; LOG_ARG="$(cygpath -w "$LOG")"; fi
+"$UNITY" -batchmode -quit -projectPath "$PROJECT_ARG" -buildTarget Android \
+  -executeMethod Misdirection.EditorTools.MisdirectionBuild.BuildFromCommandLine -logFile "$LOG_ARG"
 STATUS=$?
 set -e
 if [[ $STATUS -ne 0 ]]; then

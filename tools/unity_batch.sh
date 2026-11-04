@@ -9,7 +9,9 @@
 #                        machine, then copy the file; see docs/BUILD_WITHOUT_A_HEADSET.md)
 #   UNITY_LICENSE_B64    the same file, base64-encoded (easier to paste into env settings)
 #   UNITY_EMAIL + UNITY_PASSWORD (+ UNITY_SERIAL for Plus/Pro)
-# Unity binary: $UNITY, else $UNITY_HOME/Editor/Unity, else /opt/unity/Editor/Unity (unityci images).
+#   or a licence already activated on this machine (sign in to Unity Hub)
+# Unity binary: $UNITY, else $UNITY_HOME/Editor/Unity[.exe], else /opt/unity (unityci images),
+# else the usual Windows/macOS folders for the project's editor version. Works in Git Bash on Windows.
 # Without a keystore (MISDIRECTION_KEYSTORE / secrets/android-signing.properties) it makes a
 # debug-signed development APK, which installs on a dev-mode Quest but can't go to the Store.
 set -euo pipefail
@@ -19,13 +21,27 @@ MODE="${1:-all}"
 LOG_DIR="$ROOT/Builds/Android"
 mkdir -p "$LOG_DIR"
 
+EDITOR_VERSION=$(grep -E '^m_EditorVersion:' "$ROOT/ProjectSettings/ProjectVersion.txt" | awk '{print $2}' | tr -d '\r')
 UNITY="${UNITY:-}"
-if [[ -z "$UNITY" && -n "${UNITY_HOME:-}" ]]; then UNITY="$UNITY_HOME/Editor/Unity"; fi
-if [[ -z "$UNITY" && -x /opt/unity/Editor/Unity ]]; then UNITY=/opt/unity/Editor/Unity; fi
+if [[ -z "$UNITY" ]]; then
+  for candidate in \
+    "${UNITY_HOME:+$UNITY_HOME/Editor/Unity}" \
+    "${UNITY_HOME:+$UNITY_HOME/Editor/Unity.exe}" \
+    /opt/unity/Editor/Unity \
+    "/c/Unity/$EDITOR_VERSION/Editor/Unity.exe" \
+    "/c/Program Files/Unity/Hub/Editor/$EDITOR_VERSION/Editor/Unity.exe" \
+    "/Applications/Unity/Hub/Editor/$EDITOR_VERSION/Unity.app/Contents/MacOS/Unity" \
+    "$HOME/Unity/Hub/Editor/$EDITOR_VERSION/Editor/Unity"; do
+    if [[ -n "$candidate" && -x "$candidate" ]]; then UNITY="$candidate"; break; fi
+  done
+fi
 if [[ -z "$UNITY" || ! -x "$UNITY" ]]; then
-  echo "error: Unity not found. Set UNITY, or install it with tools/install_unity_linux.py --dest ~/unity and set UNITY_HOME=~/unity" >&2
+  echo "error: Unity $EDITOR_VERSION not found. Set UNITY, or install it with tools/install_unity.py --dest <folder> and set UNITY_HOME to that folder." >&2
   exit 1
 fi
+# Native Windows Unity wants Windows paths.
+to_native() { if command -v cygpath >/dev/null 2>&1; then cygpath -w "$1"; else printf '%s' "$1"; fi; }
+PROJECT_PATH="$(to_native "$ROOT")"
 
 # ---- licence
 CRED_ARGS=()
@@ -39,8 +55,12 @@ if [[ -n "${UNITY_EMAIL:-}" && -n "${UNITY_PASSWORD:-}" ]]; then
   CRED_ARGS+=(-username "$UNITY_EMAIL" -password "$UNITY_PASSWORD")
   if [[ -n "${UNITY_SERIAL:-}" ]]; then CRED_ARGS+=(-serial "$UNITY_SERIAL"); fi
 fi
-if [[ ! -f "$ULF_DIR/Unity_lic.ulf" && ${#CRED_ARGS[@]} -eq 0 ]]; then
-  echo "error: no Unity licence. Set UNITY_LICENSE / UNITY_LICENSE_B64, or UNITY_EMAIL + UNITY_PASSWORD." >&2
+LOCAL_LICENCE=""
+for f in "$ULF_DIR/Unity_lic.ulf" "/c/ProgramData/Unity/Unity_lic.ulf" "/Library/Application Support/Unity/Unity_lic.ulf"; do
+  if [[ -f "$f" ]]; then LOCAL_LICENCE="$f"; break; fi
+done
+if [[ -z "$LOCAL_LICENCE" && ${#CRED_ARGS[@]} -eq 0 ]]; then
+  echo "error: no Unity licence. Sign in to Unity Hub on this machine, or set UNITY_LICENSE / UNITY_LICENSE_B64, or UNITY_EMAIL + UNITY_PASSWORD." >&2
   exit 3
 fi
 
@@ -63,7 +83,7 @@ run_unity() {
   local log="$LOG_DIR/unity-$name.log"
   echo "== Unity $name (log: $log)"
   set +e
-  "$UNITY" -batchmode -nographics -projectPath "$ROOT" -buildTarget Android -logFile "$log" "${CRED_ARGS[@]}" "$@"
+  "$UNITY" -batchmode -nographics -projectPath "$PROJECT_PATH" -buildTarget Android -logFile "$(to_native "$log")" "${CRED_ARGS[@]}" "$@"
   local status=$?
   set -e
   if grep -q "No valid Unity Editor license" "$log" 2>/dev/null; then

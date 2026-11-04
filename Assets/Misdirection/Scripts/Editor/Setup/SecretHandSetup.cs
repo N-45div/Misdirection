@@ -60,6 +60,7 @@ namespace Misdirection.EditorTools
             Undo.RegisterCreatedObjectUndo(root, "Add Ditch Practice");
             TableCalibrator table = root.AddComponent<TableCalibrator>();
             Wire(table, "leftHand", left, "rightHand", right, "lookSource", look);
+            AddRoomAwareness(root, table, look);
 
             GameObject coinGo = new GameObject("Coin");
             coinGo.transform.SetParent(root.transform, false);
@@ -120,6 +121,7 @@ namespace Misdirection.EditorTools
             Undo.RegisterCreatedObjectUndo(root, "Add Trick 1");
             TableCalibrator table = root.AddComponent<TableCalibrator>();
             Wire(table, "leftHand", left, "rightHand", right, "lookSource", look);
+            AddRoomAwareness(root, table, look);
             SerializedObject ts = new SerializedObject(table);
             ts.FindProperty("showServante").boolValue = false; // in a show, the servante is the player's secret
             ts.ApplyModifiedPropertiesWithoutUndo();
@@ -138,6 +140,22 @@ namespace Misdirection.EditorTools
             EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
             Debug.Log("[Misdirection] Added Trick 1 (tracked hands, table calibrator, coin, director).");
             return director;
+        }
+
+        /// <summary>Day 5: find the table in the room scan, remember it between sessions (palms stay the fallback).</summary>
+        public static RoomTableFinder AddRoomAwareness(GameObject root, TableCalibrator table, LookSource look)
+        {
+            RoomTableFinder finder = root.AddComponent<RoomTableFinder>();
+            SerializedObject fs = new SerializedObject(finder);
+            fs.FindProperty("table").objectReferenceValue = table;
+            fs.FindProperty("lookSource").objectReferenceValue = look;
+            fs.ApplyModifiedPropertiesWithoutUndo();
+
+            TableAnchorStore store = root.AddComponent<TableAnchorStore>();
+            SerializedObject ss = new SerializedObject(store);
+            ss.FindProperty("table").objectReferenceValue = table;
+            ss.ApplyModifiedPropertiesWithoutUndo();
+            return finder;
         }
 
         private static TrackedHand CreateHand(Transform parent, HandId side, OVRHand ovrHand)

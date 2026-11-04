@@ -23,7 +23,7 @@ public static class SpikeModelHarness
         foreach (string line in File.ReadLines(args[0]))
         {
             if (line.StartsWith("#") || line.Trim().Length == 0) continue;
-            string[] parts = line.Split(',');
+            string[] parts = line.Split(new[] { ',' });
             if (header == null) { header = parts; continue; }
             if (parts[Col(header, "phase")] != "record") continue;
             if (parts[Col(header, "hand")] != parts[Col(header, "secret_hand")]) continue;
