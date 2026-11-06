@@ -255,31 +255,8 @@ namespace Misdirection.Core.Tricks
         /// <summary>Amazement from how cleanly the method stayed out of every cone and how suspicious the crowd already is.</summary>
         public RevealResult Score(string kind, WitnessReport method, TrickInput input, float bonus, int spectator)
         {
-            RevealResult r = new RevealResult();
-            r.Kind = kind;
-            r.Spectator = spectator;
-            r.SeenBy = method.MaxCoverage >= settings.HeckleCoverage ? method.SeenBy : -1;
-            float clean = 1f - Clamp01(method.MaxCoverage);
-            float doubt = 1f - 0.5f * Clamp01(input.AverageSuspicion);
-            r.Amazement = Math.Min(1f + settings.ProductionBonus, Math.Max(0f, clean * doubt + (clean > 0.5f ? bonus : 0f)));
-            if (r.SeenBy >= 0)
-            {
-                r.Reaction = Reaction.Heckle;
-            }
-            else if (r.Amazement >= settings.ApplauseAt)
-            {
-                r.Reaction = Reaction.Applause;
-            }
-            else if (r.Amazement >= settings.GaspAt)
-            {
-                r.Reaction = Reaction.Gasp;
-            }
-            else
-            {
-                r.Reaction = Reaction.Heckle;
-            }
-            r.Tips = r.Reaction == Reaction.Heckle ? 0 : (int)Math.Round(r.Amazement * settings.TipsPerSpectator * Math.Max(1, input.Spectators));
-            return r;
+            return RevealScoring.Score(kind, method, input, bonus, spectator, settings.HeckleCoverage, settings.ApplauseAt,
+                                       settings.GaspAt, settings.TipsPerSpectator, settings.ProductionBonus);
         }
 
         public void Reset(double time)
@@ -310,6 +287,48 @@ namespace Misdirection.Core.Tricks
             PhaseSince = time;
             shownSince = -1;
             revealSince = -1;
+        }
+    }
+
+    /// <summary>How every trick turns a reveal into amazement, a crowd reaction and tips.</summary>
+    public static class RevealScoring
+    {
+        /// <summary>
+        /// Amazement = how cleanly the method stayed out of every cone × how much the crowd still trusts you
+        /// (half off at full suspicion), plus a bonus for a clean production. A method seen at least
+        /// <paramref name="heckleCoverage"/> well is heckled and earns nothing.
+        /// </summary>
+        public static RevealResult Score(string kind, WitnessReport method, TrickInput input, float bonus, int spectator,
+                                         float heckleCoverage, float applauseAt, float gaspAt, int tipsPerSpectator, float maxBonus)
+        {
+            RevealResult r = new RevealResult();
+            r.Kind = kind;
+            r.Spectator = spectator;
+            r.SeenBy = method.MaxCoverage >= heckleCoverage ? method.SeenBy : -1;
+            float clean = 1f - Clamp01(method.MaxCoverage);
+            float doubt = 1f - 0.5f * Clamp01(input.AverageSuspicion);
+            r.Amazement = Math.Min(1f + maxBonus, Math.Max(0f, clean * doubt + (clean > 0.5f ? bonus : 0f)));
+            float applause = applauseAt;
+            float gasp = gaspAt;
+            int perSpectator = tipsPerSpectator;
+            if (r.SeenBy >= 0)
+            {
+                r.Reaction = Reaction.Heckle;
+            }
+            else if (r.Amazement >= applause)
+            {
+                r.Reaction = Reaction.Applause;
+            }
+            else if (r.Amazement >= gasp)
+            {
+                r.Reaction = Reaction.Gasp;
+            }
+            else
+            {
+                r.Reaction = Reaction.Heckle;
+            }
+            r.Tips = r.Reaction == Reaction.Heckle ? 0 : (int)Math.Round(r.Amazement * perSpectator * Math.Max(1, input.Spectators));
+            return r;
         }
 
         private static float Clamp01(float v)
