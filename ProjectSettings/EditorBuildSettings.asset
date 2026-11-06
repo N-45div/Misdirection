@@ -4,7 +4,18 @@
 EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
-  m_Scenes: []
+  m_Scenes:
+  - enabled: 1
+    path: Assets/Misdirection/Scenes/Show.unity
+    guid: f9fbee7a775239c429ffe74fc9bc7a44
+  - enabled: 1
+    path: Assets/Misdirection/Scenes/Main.unity
+    guid: 277feacd414848c4aa034f8d3388a23c
+  - enabled: 1
+    path: Assets/Misdirection/Scenes/Spike.unity
+    guid: 9ccdb16a8d1d7e343bcefbe0ef01163f
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
+    com.unity.xr.management.loader_settings: {fileID: 11400000, guid: 5fd19874e07929141ba4ab24366ef976, type: 2}
+    com.unity.xr.openxr.settings4: {fileID: 11400000, guid: fce9cd53b6acb04418dfd2dda9c9b3d0, type: 2}
   m_UseUCBPForAssetBundles: 0

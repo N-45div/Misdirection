@@ -68,3 +68,8 @@ Thumbs.db
 # Meta XR dev-agent bridge token: generated per machine, never commit
 Assets/Resources/DevAgentSettings.asset
 Assets/Resources/DevAgentSettings.asset.meta
+
+# Unity build leftovers
+.utmp/
+Assets/Resources/PerformanceTestRun*
+Assets/StreamingAssets.meta
