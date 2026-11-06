@@ -496,7 +496,7 @@ MonoBehaviour:
   rightHand: {fileID: 1830505356}
   room: {fileID: 298830001}
   archetypes: 000000000100000002000000
-  arcHalfDegrees: 30
+  arcHalfDegrees: 20
   distance: 1.55
   tableHeightAboveFloor: 0.74
   layout:
@@ -506,7 +506,7 @@ MonoBehaviour:
     MinArcHalfDegrees: 8
     ArcStepDegrees: 2
     WallClearance: 0.35
-    MinSpacing: 0.55
+    MinSpacing: 0.5
   crowdSettings:
     FaceAngleDegrees: 6
     FaceReleaseDegrees: 9

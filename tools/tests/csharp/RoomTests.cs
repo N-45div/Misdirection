@@ -114,6 +114,19 @@ public static class CrowdLayoutTests
     }
 
     [Test]
+    public static void NoHeadsetDefaultsFitThreeInTwentyDegrees()
+    {
+        // Without a tracking-spike measurement the crowd uses ±20° and 50 cm spacing (docs/NO_HEADSET.md).
+        LayoutResult result;
+        float arc;
+        var settings = new CrowdLayoutSettings { MaxArcHalfDegrees = 20f, MinSpacing = 0.5f };
+        var slots = CrowdLayout.Place(Eyes, Ahead, 3, new List<Segment2>(), settings, out result, out arc);
+        Assert.Equal(LayoutResult.Open, result);
+        Assert.Equal(3, slots.Count);
+        Assert.Near(20.0, arc, 1e-3, "arc");
+    }
+
+    [Test]
     public static void WallAheadPullsTheCrowdCloser()
     {
         LayoutResult result;

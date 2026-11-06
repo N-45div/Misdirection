@@ -28,13 +28,13 @@ namespace Misdirection.Audience
         [Header("Who and where")]
         [SerializeField] private Archetype[] archetypes = { Archetype.Tourist, Archetype.Kid, Archetype.Skeptic };
         [Tooltip("Spectators spread across this many degrees either side of straight ahead. Set it from the Day 1 tracking spike.")]
-        [SerializeField] private float arcHalfDegrees = 30f;
+        [SerializeField] private float arcHalfDegrees = 20f;
         [Tooltip("Horizontal distance from the player's eyes to the spectators (metres).")]
         [SerializeField] private float distance = 1.55f;
         [Tooltip("Table surface height above the floor when the room scan has no floor (metres).")]
         [SerializeField] private float tableHeightAboveFloor = 0.74f;
         [Tooltip("Clearance and spacing rules for placing spectators in a scanned room.")]
-        [SerializeField] private CrowdLayoutSettings layout = new CrowdLayoutSettings();
+        [SerializeField] private CrowdLayoutSettings layout = new CrowdLayoutSettings { MinSpacing = 0.5f };
 
         [Header("Attention")]
         [SerializeField] private CrowdSettings crowdSettings = new CrowdSettings();
