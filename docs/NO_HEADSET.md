@@ -36,4 +36,5 @@ Even one hour on any Quest 3 or 3S (a friend, a college lab, a VR café) before 
 - `tools/unity_compile_check.py`: every script against the real Unity + Meta packages.
 - `python -m unittest discover -s tools/tests -t .`: all the game rules (C#) and analysis tools.
 - `tools/unity_batch.sh bootstrap | build`: project setup and a debug APK, headless.
-- Simulator smoke test (in progress): plays Show.unity in the simulator and checks that the table, crowd and trick come up without errors.
+- `tools/sim_smoke.sh`: plays Show.unity in the simulator and checks for no errors, table set (room scan, else placed in front of the head), crowd spawned, a trick running. Writes `Builds/Smoke/report.json` and a screenshot. First runs (Nov 6) passed in two different simulator rooms; the scanned tables and walls were read, and table anchors save and restore.
+- Note: the simulator's user stands about 1.1 m from its table, so the smoke test usually falls back to placing the table in front of the head.

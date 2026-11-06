@@ -14,7 +14,7 @@ Entry for the Meta Horizon Start Developer Competition 2026, Gaming track (Best 
 | Path | What it is |
 |---|---|
 | [docs/TIMELINE.md](docs/TIMELINE.md) | Day-by-day plan from Nov 1 to Nov 18, split by role, with gates, cut order and pivot rule |
-| [docs/days/](docs/days/) | Detailed runbook for each day as it starts. **Today's: [day-06.md](docs/days/day-06.md)** |
+| [docs/days/](docs/days/) | Detailed runbook for each day as it starts. **Today's: [day-07.md](docs/days/day-07.md)** |
 | [docs/DESIGN.md](docs/DESIGN.md) | Game design and how each feature maps to the judging criteria |
 | [docs/OPEN_ITEMS.md](docs/OPEN_ITEMS.md) | Rules, eligibility and device questions to verify, with owners and due dates |
 | [docs/TRAILER.md](docs/TRAILER.md) | Video shot list (under 3:00) |
@@ -34,6 +34,7 @@ Entry for the Meta Horizon Start Developer Competition 2026, Gaming track (Best 
 | 4 | Thu Nov 5 | **Code written early (Nov 4):** Trick 1 (show, misdirect, ditch, empty-hand reveal, steal, produce from a spectator's ear), amazement and tips, applause/gasp/heckle, Show.unity. 48 core tests. Fun-gate playtest script and go/pivot sheet ([runbook](docs/days/day-04.md)) |
 | 5 | Fri Nov 6 | **Code written early (Nov 4):** table found from the Quest room scan (MRUK) or the palms gesture, remembered between sessions with a spatial anchor; crowd placed on open floor around real walls and furniture, arc tightens in small rooms. Builds now run on Windows without admin ([runbook](docs/days/day-05.md)) |
 | 6 | Sat Nov 7 | **Code written early (Nov 6):** Trick 2, the coin under the cup (load at the cup's base, show the hand empty, lift the cup); shared reveal scoring; Show.unity alternates Trick 1 and Trick 2. First debug APK built locally on Nov 6 ([runbook](docs/days/day-06.md)) |
+| 7 | Sun Nov 8 | **Code written early (Nov 6):** readable crowd: faces (brows, mouth), arms (fold, clap, point, hands up), lean, accessories, 3-D murmurs, claps, gasps and "hm!"; reveals play through the crowd. Runs in the Meta XR Simulator smoke test ([runbook](docs/days/day-07.md)) |
 
 ## Getting started
 

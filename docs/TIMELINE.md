@@ -108,6 +108,8 @@ Runbook: [days/day-06.md](days/day-06.md). Trick 2, shared scoring and the two-t
 
 ## Day 7 · Sun Nov 8 · Spectator art + crowd audio
 
+Runbook: [days/day-07.md](days/day-07.md). Readable crowd (expressions, poses, accessories, 3-D voices) written and tested on Nov 6; the recording comes from the simulator.
+
 - **ART**: Stylised spectator models. Code-driven head and eye look-at. Reaction states. Crowd audio (murmurs, gasps, applause), spatialised.
 - **SYS**: The five archetypes (Tourist, Kid, Skeptic, Filmer, Regular) as attention-weight presets.
 - **INT**: Hand-feel tuning from Day 4 notes.
