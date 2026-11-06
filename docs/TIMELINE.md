@@ -13,6 +13,8 @@ A two-person team merges INT + SYS ("Dev") and ART + PRO ("Producer").
 
 **Agents** (Claude Code with the `meta-vr` plugin / metavr MCP) handle deploys, logs, perf traces, and the `hz-unity-device-readiness` and `hz-unity-code-review` audits. Humans own architecture and review every AI-written change. Meta XR Operator stays in development builds only.
 
+> **Nov 6: no Quest on the team.** Device-only checks move to Meta XR Simulator 207.1 on the PC; see [NO_HEADSET.md](NO_HEADSET.md) for what each gate becomes.
+
 | Day | Date | Focus | Exit criterion | Gate |
 |---|---|---|---|---|
 | 0 | Sun Nov 1 | Admin + setup | Every account item submitted or escalated | |
@@ -95,6 +97,8 @@ Runbook: [days/day-05.md](days/day-05.md). Room-scan table, saved anchor and roo
 - Exit: works on three different tables.
 
 ## Day 6 · Sat Nov 7 · Trick 2 + scoring
+
+Runbook: [days/day-06.md](days/day-06.md). Trick 2, shared scoring and the two-trick show written and unit-tested on Nov 6.
 
 - **INT**: Cups-and-balls load (**first cut candidate**).
 - **SYS**: Amazement and suspicion scoring, tips, heckle thresholds.
