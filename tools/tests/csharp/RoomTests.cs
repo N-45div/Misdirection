@@ -86,6 +86,22 @@ public static class TableDetectionTests
     }
 
     [Test]
+    public static void StandingPlayerGetsTheDiningTableNotTheCoffeeTable()
+    {
+        // The Meta XR Simulator's default user stands (eyes ~1.7 m).
+        var standing = new Vector3(0f, 1.70f, 0f);
+        var tables = new List<TableCandidate>
+        {
+            RoomFixtures.Box(-0.5f, 0.5f, 0.2f, 0.8f, 0.40f, "coffee"),
+            RoomFixtures.Box(-0.6f, 0.6f, 0.3f, 1.1f, 0.75f, "dining"),
+        };
+        var reasons = new List<TableRejection>();
+        int best = TableDetection.Choose(tables, standing, new TableSearchSettings(), reasons);
+        Assert.Equal("dining", tables[best].Id);
+        Assert.Equal(TableRejection.WrongHeight, reasons[0], "coffee table 1.3 m below the eyes");
+    }
+
+    [Test]
     public static void EdgeDistanceIsZeroOverTheTable()
     {
         TableCandidate t = RoomFixtures.Box(-0.6f, 0.6f, -0.2f, 1.0f);

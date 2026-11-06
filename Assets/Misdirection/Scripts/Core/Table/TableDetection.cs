@@ -58,9 +58,12 @@ namespace Misdirection.Core.Table
         public float MinSide = 0.30f;
         /// <summary>The player must be within this horizontal distance of the table's nearest edge (metres).</summary>
         public float MaxEdgeDistance = 1.0f;
-        /// <summary>A seated player's eyes sit 0.15–0.95 m above a usable table top.</summary>
+        /// <summary>
+        /// A usable table top sits 0.15–1.15 m below the eyes: seated (~0.45 m) up to standing at a
+        /// dining table (~1.0 m, also the Meta XR Simulator's default standing user).
+        /// </summary>
         public float MinTopBelowEyes = 0.15f;
-        public float MaxTopBelowEyes = 0.95f;
+        public float MaxTopBelowEyes = 1.15f;
         /// <summary>Keep the frame origin this far from the edge's ends, so the mat fits (metres).</summary>
         public float MatHalfWidth = 0.22f;
     }
