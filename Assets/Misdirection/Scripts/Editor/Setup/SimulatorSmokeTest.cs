@@ -128,6 +128,9 @@ namespace Misdirection.EditorTools
 
         private static void EnterPlay()
         {
+            // Start every run without last session's table, so the room-scan path is what gets tested.
+            PlayerPrefs.DeleteKey(TableAnchorStore.PrefsKey);
+            PlayerPrefs.Save();
             EditorSceneManager.OpenScene(MisdirectionBootstrap.ShowScenePath, OpenSceneMode.Single);
             Log("entering Play mode in Show.unity");
             SessionState.SetString(StageKey, "playing");
@@ -221,6 +224,9 @@ namespace Misdirection.EditorTools
             json.Append("  \"table_set\": ").Append(tableOk ? "true" : "false").Append(",\n");
             json.Append("  \"table_source\": \"").Append(table != null ? table.Source.ToString() : "missing").Append("\",\n");
             json.Append("  \"room_status\": \"").Append(Escape(room != null ? room.Status : "no RoomTableFinder")).Append("\",\n");
+            Vector3 headPos = Camera.main != null ? Camera.main.transform.position : Vector3.zero;
+            json.Append("  \"head\": \"").Append(headPos.ToString("F2")).Append("\",\n");
+            json.Append("  \"floor_y\": ").Append(room != null && room.HasFloor ? room.FloorY.ToString("F2", inv) : "null").Append(",\n");
             json.Append("  \"spectators\": ").Append(spectators).Append(",\n");
             json.Append("  \"crowd_layout\": \"").Append(Escape(crowd != null ? crowd.LayoutNote : "")).Append("\",\n");
             json.Append("  \"active_trick\": \"").Append(activeTrick).Append("\",\n");
