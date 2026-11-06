@@ -183,6 +183,10 @@ namespace Misdirection.Tricks
                 if (trick.Phase == CupPhase.Busted)
                 {
                     feedback.Play(feedback.Heckle);
+                    if (crowd != null)
+                    {
+                        crowd.React(Reaction.Heckle, -1);
+                    }
                     feedback.ShowReaction("<color=#FF7043>" + trick.Prompt + "</color>", -1, crowd, table, now);
                 }
                 if (trick.Phase == CupPhase.Idle)

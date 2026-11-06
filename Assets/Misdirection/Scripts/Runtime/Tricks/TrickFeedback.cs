@@ -90,11 +90,20 @@ namespace Misdirection.Tricks
         /// <summary>Applause, gasp or heckle for a reveal, floating above whoever it concerns.</summary>
         public void React(RevealResult r, Crowd crowd, TableCalibrator table, double now)
         {
-            switch (r.Reaction)
+            bool spatial = crowd != null && crowd.Spectators.Count > 0;
+            if (spatial)
             {
-                case Reaction.Applause: Play(Applause); break;
-                case Reaction.Gasp: Play(Gasp); break;
-                default: Play(Heckle); break;
+                // Each spectator claps, gasps or heckles from where they stand.
+                crowd.React(r.Reaction, r.SeenBy);
+            }
+            if (!spatial || (r.Reaction == Reaction.Heckle && r.SeenBy < 0))
+            {
+                switch (r.Reaction)
+                {
+                    case Reaction.Applause: Play(Applause); break;
+                    case Reaction.Gasp: Play(Gasp); break;
+                    default: Play(Heckle); break;
+                }
             }
             string line;
             if (r.Reaction == Reaction.Heckle)

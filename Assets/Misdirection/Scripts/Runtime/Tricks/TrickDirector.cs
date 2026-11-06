@@ -323,11 +323,20 @@ namespace Misdirection.Tricks
         private void OnReveal(RevealResult r, double now)
         {
             Log(now, "reveal", r.Kind, r);
-            switch (r.Reaction)
+            bool spatial = crowd != null && crowd.Spectators.Count > 0;
+            if (spatial)
             {
-                case Reaction.Applause: Play(applause); break;
-                case Reaction.Gasp: Play(gasp); break;
-                default: Play(heckle); break;
+                // Each spectator claps, gasps or heckles from where they stand.
+                crowd.React(r.Reaction, r.SeenBy);
+            }
+            if (!spatial || (r.Reaction == Reaction.Heckle && r.SeenBy < 0))
+            {
+                switch (r.Reaction)
+                {
+                    case Reaction.Applause: Play(applause); break;
+                    case Reaction.Gasp: Play(gasp); break;
+                    default: Play(heckle); break;
+                }
             }
 
             string line;
@@ -377,6 +386,10 @@ namespace Misdirection.Tricks
             if (to == TrickPhase.Busted)
             {
                 Play(heckle);
+                if (crowd != null)
+                {
+                    crowd.React(Reaction.Heckle, -1);
+                }
                 ShowReaction("<color=#FF7043>" + trick.Prompt + "</color>", -1, now);
             }
             if (to == TrickPhase.Idle && from == TrickPhase.Finale && Completed != null)
