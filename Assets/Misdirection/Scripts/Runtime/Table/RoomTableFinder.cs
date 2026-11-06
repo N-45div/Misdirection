@@ -27,11 +27,18 @@ namespace Misdirection.Table
             MRUKAnchor.SceneLabels.LAMP | MRUKAnchor.SceneLabels.OTHER;
         [Tooltip("Seconds to wait for the scan before telling the player to use their palms.")]
         [SerializeField] private float scanTimeoutSeconds = 6f;
+        [Tooltip("The scan can land before the head is tracked; keep re-checking the tables this long (seconds).")]
+        [SerializeField] private float retrySeconds = 15f;
 
         private readonly List<Segment2> walls = new List<Segment2>();
         private readonly List<Footprint> furniture = new List<Footprint>();
+        private readonly List<TableCandidate> candidates = new List<TableCandidate>();
+        private readonly List<MRUKAnchor> candidateAnchors = new List<MRUKAnchor>();
+        private MRUKRoom room;
         private MRUKAnchor chosenTable;
         private float startTime;
+        private float retryUntil;
+        private float nextRetry;
 
         public bool RoomLoaded { get; private set; }
         public bool HasFloor { get; private set; }
@@ -74,37 +81,55 @@ namespace Misdirection.Table
             {
                 Status = "No room scan yet: rest your palms on the table.";
             }
+            // The scan often arrives before head tracking settles; re-check with the current head for a while.
+            if (RoomLoaded && chosenTable == null && candidates.Count > 0 && Time.time < retryUntil && Time.time >= nextRetry
+                && (table == null || !table.Calibrated))
+            {
+                nextRetry = Time.time + 1f;
+                ChooseTable(false);
+            }
         }
 
         private void OnSceneLoaded()
         {
-            MRUKRoom room = MRUK.Instance != null ? MRUK.Instance.GetCurrentRoom() : null;
+            room = MRUK.Instance != null ? MRUK.Instance.GetCurrentRoom() : null;
             if (room == null)
             {
                 Status = "No room scan. Set up your space in Quest settings, or rest your palms on the table.";
                 return;
             }
 
-            Vector3 eyes = Eyes();
-            List<TableCandidate> candidates = new List<TableCandidate>();
-            List<MRUKAnchor> anchors = new List<MRUKAnchor>();
+            candidates.Clear();
+            candidateAnchors.Clear();
             foreach (MRUKAnchor anchor in room.Anchors)
             {
                 TableCandidate candidate;
                 if (anchor != null && anchor.HasAnyLabel(MRUKAnchor.SceneLabels.TABLE) && TryTop(anchor, out candidate))
                 {
                     candidates.Add(candidate);
-                    anchors.Add(anchor);
+                    candidateAnchors.Add(anchor);
                 }
             }
-            List<TableRejection> reasons = new List<TableRejection>();
-            int best = TableDetection.Choose(candidates, eyes.ToNumerics(), search, reasons);
-            chosenTable = best >= 0 ? anchors[best] : null;
-
-            BuildFloorPlan(room);
             HasFloor = room.FloorAnchor != null;
             FloorY = HasFloor ? room.FloorAnchor.transform.position.y : 0f;
             RoomLoaded = true;
+            retryUntil = Time.time + retrySeconds;
+            nextRetry = Time.time + 1f;
+            ChooseTable(true);
+            if (OnRoomLoaded != null)
+            {
+                OnRoomLoaded();
+            }
+        }
+
+        /// <summary>Picks the table for the current head position; rebuilds the floor plan around it.</summary>
+        private void ChooseTable(bool firstTry)
+        {
+            Vector3 eyes = Eyes();
+            List<TableRejection> reasons = new List<TableRejection>();
+            int best = TableDetection.Choose(candidates, eyes.ToNumerics(), search, reasons);
+            chosenTable = best >= 0 ? candidateAnchors[best] : null;
+            BuildFloorPlan(room);
 
             if (chosenTable != null)
             {
@@ -121,12 +146,31 @@ namespace Misdirection.Table
                     ? "The room scan has no table: rest your palms on the table."
                     : "The room scan's tables are " + Describe(reasons) + ": rest your palms on the table.";
             }
-            Debug.Log("[Misdirection] Room scan: " + candidates.Count + " table(s), " + walls.Count + " wall(s), " +
-                      furniture.Count + " furniture footprint(s). " + Status);
-            if (OnRoomLoaded != null)
+            if (firstTry || chosenTable != null)
             {
-                OnRoomLoaded();
+                Debug.Log("[Misdirection] Room scan: " + candidates.Count + " table(s), " + walls.Count + " wall(s), " +
+                          furniture.Count + " furniture footprint(s). " + Status + "\n" + Diagnose(eyes, reasons));
             }
+        }
+
+        /// <summary>Eye and floor heights and why each table was or wasn't picked (for logs and the smoke test).</summary>
+        public string Diagnose(Vector3 eyes, List<TableRejection> reasons)
+        {
+            System.Text.StringBuilder sb = new System.Text.StringBuilder();
+            sb.Append("eyes at y=").Append(eyes.y.ToString("F2"));
+            if (HasFloor)
+            {
+                sb.Append(" (").Append((eyes.y - FloorY).ToString("F2")).Append(" m above the floor)");
+            }
+            for (int i = 0; i < candidates.Count; i++)
+            {
+                TableCandidate t = candidates[i];
+                sb.Append("; ").Append(t.Id).Append(": top y=").Append(t.TopY.ToString("F2"))
+                  .Append(", ").Append((eyes.y - t.TopY).ToString("F2")).Append(" m below the eyes, edge ")
+                  .Append(TableDetection.EdgeDistance(t, eyes.ToNumerics()).ToString("F2")).Append(" m away")
+                  .Append(i < reasons.Count ? " -> " + reasons[i] : "");
+            }
+            return sb.ToString();
         }
 
         /// <summary>The table top as a rectangle: from the anchor's plane, else the top face of its volume.</summary>
@@ -163,11 +207,15 @@ namespace Misdirection.Table
             return true;
         }
 
-        private void BuildFloorPlan(MRUKRoom room)
+        private void BuildFloorPlan(MRUKRoom scannedRoom)
         {
             walls.Clear();
             furniture.Clear();
-            foreach (MRUKAnchor wall in room.WallAnchors)
+            if (scannedRoom == null)
+            {
+                return;
+            }
+            foreach (MRUKAnchor wall in scannedRoom.WallAnchors)
             {
                 if (wall == null || !wall.PlaneRect.HasValue)
                 {
@@ -179,7 +227,7 @@ namespace Misdirection.Table
                 Vector3 b = wall.transform.TransformPoint(new Vector3(r.xMax, 0f, 0f));
                 walls.Add(new Segment2(new NVector2(a.x, a.z), new NVector2(b.x, b.z)));
             }
-            foreach (MRUKAnchor anchor in room.Anchors)
+            foreach (MRUKAnchor anchor in scannedRoom.Anchors)
             {
                 if (anchor == null || anchor == chosenTable || !anchor.HasAnyLabel(furnitureLabels))
                 {
