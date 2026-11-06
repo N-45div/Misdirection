@@ -102,6 +102,18 @@ namespace Misdirection.Audience
             hasSecret = false;
         }
 
+        /// <summary>
+        /// Everyone reacts to a reveal or bust: clapping, gasping, or frowning while
+        /// <paramref name="seenBy"/> (if any) points and says "hm!". Sounds play from each spectator.
+        /// </summary>
+        public void React(Core.Tricks.Reaction reaction, int seenBy)
+        {
+            for (int i = 0; i < spectators.Count; i++)
+            {
+                spectators[i].React(reaction, i == seenBy);
+            }
+        }
+
         /// <summary>A sound at <paramref name="point"/> draws eyes (a coin clink, "Look!").</summary>
         public void MakeSound(Vector3 point, float strength = 1f)
         {
@@ -297,11 +309,12 @@ namespace Misdirection.Audience
             Flourish(leftHand, leftFlourish, now, eyes, tableY);
             Flourish(rightHand, rightFlourish, now, eyes, tableY);
 
-            model.Update(now, dt, eyes.ToNumerics(), lookSource.Direction.ToNumerics(), HandsCenter().ToNumerics(), Stage().ToNumerics(), tableY);
+            Vector3 hands = HandsCenter();
+            model.Update(now, dt, eyes.ToNumerics(), lookSource.Direction.ToNumerics(), hands.ToNumerics(), Stage().ToNumerics(), tableY);
 
             foreach (Spectator s in spectators)
             {
-                s.Tick(eyes, secretPoint, hasSecret);
+                s.Tick(eyes, secretPoint, hasSecret, hands);
             }
             if (gazeDot != null)
             {

@@ -1,13 +1,15 @@
 using Misdirection.Core.Crowd;
+using Misdirection.Core.Tricks;
 using TMPro;
 using UnityEngine;
 
 namespace Misdirection.Audience
 {
     /// <summary>
-    /// Greybox spectator: body, head and eyes that visibly follow the attention model, a
-    /// shape-coded suspicion marker (? / ?! / !!), and an optional "Magician's Eye" cone.
-    /// Day 7 swaps the greybox for stylised models; the look-at logic stays.
+    /// A spectator: head and eyes that visibly follow the attention model, a readable face and body
+    /// (<see cref="SpectatorFigure"/>: brows, mouth, lean, arms, accessory), their own 3-D sound
+    /// (<see cref="SpectatorVoice"/>), a shape-coded suspicion marker (? / ?! / !!) and an optional
+    /// "Magician's Eye" cone.
     /// </summary>
     public sealed class Spectator : MonoBehaviour
     {
@@ -23,7 +25,12 @@ namespace Misdirection.Audience
         private Transform rightEye;
         private TextMeshPro marker;
         private AttentionCone cone;
+        private SpectatorFigure figure;
+        private SpectatorVoice voice;
         private Vector3 bodyForward = Vector3.forward;
+        private Reaction reaction = Reaction.None;
+        private double reactionStart;
+        private bool reactionMine;
 
         public SpectatorMind Mind { get { return mind; } }
 
@@ -51,23 +58,22 @@ namespace Misdirection.Audience
             float headY = eyeHeightAboveFeet + 0.02f;
             float bodyHeight = Mathf.Max(0.6f, headY - 0.18f);
 
-            Part(PrimitiveType.Capsule, "Body", transform, new Vector3(0f, bodyHeight * 0.5f, 0f),
-                 new Vector3(0.36f, bodyHeight * 0.5f, 0.24f), body);
+            Transform torsoCapsule = Part(PrimitiveType.Capsule, "Body", transform, new Vector3(0f, bodyHeight * 0.5f, 0f),
+                 new Vector3(0.36f, bodyHeight * 0.5f, 0.24f), body).transform;
 
+            Color skin = Color.Lerp(body, new Color(0.95f, 0.85f, 0.75f), 0.7f);
             GameObject headGo = Part(PrimitiveType.Sphere, "Head", transform, new Vector3(0f, headY, 0f),
-                                     Vector3.one * 0.21f, Color.Lerp(body, new Color(0.95f, 0.85f, 0.75f), 0.7f));
+                                     Vector3.one * 0.21f, skin);
             head = headGo.transform;
             leftEye = Part(PrimitiveType.Sphere, "Eye L", head, new Vector3(-0.17f, 0.08f, 0.42f), Vector3.one * 0.2f, Color.white).transform;
             rightEye = Part(PrimitiveType.Sphere, "Eye R", head, new Vector3(0.17f, 0.08f, 0.42f), Vector3.one * 0.2f, Color.white).transform;
             leftPupil = Part(PrimitiveType.Sphere, "Pupil L", head, leftEye.localPosition, Vector3.one * 0.1f, Color.black).transform;
             rightPupil = Part(PrimitiveType.Sphere, "Pupil R", head, rightEye.localPosition, Vector3.one * 0.1f, Color.black).transform;
 
-            if (mind.Profile.FixedConeOnStage)
-            {
-                // The Filmer's phone, held at chest height toward the mat.
-                Part(PrimitiveType.Cube, "Phone", transform, new Vector3(0.12f, headY - 0.3f, 0.2f),
-                     new Vector3(0.075f, 0.15f, 0.01f), new Color(0.1f, 0.1f, 0.12f));
-            }
+            figure = gameObject.AddComponent<SpectatorFigure>();
+            figure.Build(mind.Profile.Archetype, torsoCapsule, head, bodyHeight, body, skin);
+            voice = headGo.AddComponent<SpectatorVoice>();
+            voice.Build(mind.Profile.Archetype);
 
             marker = WorldText.Create(transform, "Suspicion", new Vector2(0.3f, 0.15f), 0.6f);
             marker.transform.localPosition = new Vector3(0f, headY + 0.24f, 0f);
@@ -78,12 +84,28 @@ namespace Misdirection.Audience
             cone.Visible = showCone;
         }
 
-        public void Tick(Vector3 viewer, Vector3 secretPoint, bool hasSecret)
+        /// <summary>React to a reveal or bust; <paramref name="mine"/> = this spectator saw the method (heckler).</summary>
+        public void React(Reaction r, bool mine)
+        {
+            reaction = r;
+            reactionStart = Time.timeAsDouble;
+            reactionMine = mine;
+            if (voice != null)
+            {
+                voice.React(r, mine);
+            }
+        }
+
+        public void Tick(Vector3 viewer, Vector3 secretPoint, bool hasSecret, Vector3 hands)
         {
             if (mind == null)
             {
                 return;
             }
+            Expression expression = ExpressionModel.Evaluate(mind.Profile.Archetype, mind.Level, mind.EyeContact, mind.LookingAway,
+                reaction, Time.timeAsDouble - reactionStart, reactionMine, Time.time);
+            figure.Apply(expression, hands);
+            voice.Tick(mind.Level, mind.EyeContact);
             mind.Eyes = EyesPosition.ToNumerics();
             Vector3 target = mind.AttentionPoint.ToUnity();
             AimHead(target);
