@@ -22,7 +22,7 @@ namespace Misdirection.Tricks
     /// Rules live in Misdirection.Core.Tricks.VanishTrick; this wires hands, coin, crowd and feedback.
     /// </summary>
     [DefaultExecutionOrder(10)]
-    public sealed class TrickDirector : MonoBehaviour
+    public sealed class TrickDirector : MonoBehaviour, ISequencedTrick
     {
         private static readonly CultureInfo Inv = CultureInfo.InvariantCulture;
 
@@ -59,6 +59,7 @@ namespace Misdirection.Tricks
         private int lookIndex = -1;
         private double lookSince;
         private bool flying;
+        private bool completedPending;
         private double flightStart;
         private Vector3 flightFrom;
 
@@ -71,6 +72,9 @@ namespace Misdirection.Tricks
         private SpikeCsvLog log;
 
         public VanishTrick Trick { get { return trick; } }
+
+        /// <summary>Fires after the bow (Finale → Idle), so a ShowSequence can move on.</summary>
+        public event Action Completed;
 
         public void Configure(TrackedHand left, TrackedHand right, TableCalibrator tableCalibrator, CoinActor coinActor, Crowd audience, LookSource look)
         {
@@ -116,6 +120,15 @@ namespace Misdirection.Tricks
             {
                 table.OnCalibrated += ResetCoin;
             }
+            if (hud != null)
+            {
+                hud.gameObject.SetActive(true);
+            }
+            // Taking over from another trick in the show: start from a clean mat.
+            if (table != null && table.Calibrated && leftHand != null && rightHand != null && coin != null)
+            {
+                ResetCoin();
+            }
         }
 
         private void OnDisable()
@@ -123,6 +136,14 @@ namespace Misdirection.Tricks
             if (table != null)
             {
                 table.OnCalibrated -= ResetCoin;
+            }
+            if (hud != null)
+            {
+                hud.gameObject.SetActive(false);
+            }
+            if (reactionText != null)
+            {
+                reactionText.gameObject.SetActive(false);
             }
             if (log != null)
             {
@@ -187,6 +208,14 @@ namespace Misdirection.Tricks
             UpdateHud();
             PlaceHud(viewer);
             UpdateReaction(now, viewer);
+            if (completedPending)
+            {
+                completedPending = false;
+                if (Completed != null)
+                {
+                    Completed();
+                }
+            }
         }
 
         // ------------------------------------------------------------ hands and coin
@@ -349,6 +378,11 @@ namespace Misdirection.Tricks
             {
                 Play(heckle);
                 ShowReaction("<color=#FF7043>" + trick.Prompt + "</color>", -1, now);
+            }
+            if (to == TrickPhase.Idle && from == TrickPhase.Finale && Completed != null)
+            {
+                // Let the show move on after this frame's bookkeeping (below).
+                completedPending = true;
             }
             if (to == TrickPhase.Idle)
             {

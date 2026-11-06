@@ -197,6 +197,11 @@ namespace Misdirection.EditorTools
             {
                 Log("8/8 Meta Project Setup Tool: Fix All in " + Path.GetFileName(path));
                 Scene scene = EditorSceneManager.OpenScene(path, OpenSceneMode.Single);
+                if (path == ShowScenePath)
+                {
+                    // Day 6: Trick 2 (coin under the cup) and the show sequence, added to older Show scenes too.
+                    ShowSetup.EnsureCupTrickAndSequence(false);
+                }
                 yield return OVRProjectSetup.FixAllAsync(BuildTargetGroup.Android);
                 yield return null;
                 yield return OVRProjectSetup.FixAllAsync(BuildTargetGroup.Android);
