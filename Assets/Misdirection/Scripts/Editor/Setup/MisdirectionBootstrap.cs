@@ -22,6 +22,10 @@ namespace Misdirection.EditorTools
     ///
     /// Don't pass -quit: Meta's Building Blocks and Project Setup Tool finish on editor update ticks,
     /// and this exits by itself (code 0 on success). Safe to run again: existing scenes are kept.
+    ///
+    /// Meta's Fix All changes scripting defines, which recompiles and reloads every script and wipes
+    /// static state. The bootstrap records that it is running in SessionState (which survives reloads)
+    /// and starts again after each reload; every step is idempotent, so a restart just skips ahead.
     /// </summary>
     public static class MisdirectionBootstrap
     {
@@ -34,7 +38,11 @@ namespace Misdirection.EditorTools
         private const string HandTrackingBlock = "8b26b298-7bf4-490e-b245-a039c0184303";
         private const string MrukBlock = "d4413f4f-542f-451f-92ee-4801f27d676a";
 
-        private const double TimeoutSeconds = 900;
+        private const double TimeoutSeconds = 1200;
+        private const int MaxRestarts = 4;
+        private const string ActiveKey = "Misdirection.Bootstrap.Active";
+        private const string BatchKey = "Misdirection.Bootstrap.Batch";
+        private const string RestartsKey = "Misdirection.Bootstrap.Restarts";
 
         private static IEnumerator<object> steps;
         private static Task waitingOn;
@@ -59,10 +67,39 @@ namespace Misdirection.EditorTools
                 Debug.LogWarning("[Misdirection] Bootstrap already running.");
                 return;
             }
+            SessionState.SetBool(ActiveKey, true);
+            SessionState.SetBool(BatchKey, isBatch);
+            Start(isBatch);
+        }
+
+        private static void Start(bool isBatch)
+        {
             batch = isBatch;
             deadline = EditorApplication.timeSinceStartup + TimeoutSeconds;
             steps = Steps();
+            EditorApplication.update -= Tick;
             EditorApplication.update += Tick;
+        }
+
+        /// <summary>After a script reload mid-bootstrap, carry on (the steps skip what's already done).</summary>
+        [InitializeOnLoadMethod]
+        private static void ResumeAfterReload()
+        {
+            if (!SessionState.GetBool(ActiveKey, false) || steps != null)
+            {
+                return;
+            }
+            int restarts = SessionState.GetInt(RestartsKey, 0) + 1;
+            SessionState.SetInt(RestartsKey, restarts);
+            bool wasBatch = SessionState.GetBool(BatchKey, false);
+            if (restarts > MaxRestarts)
+            {
+                batch = wasBatch;
+                Finish(false, "scripts reloaded " + restarts + " times; giving up");
+                return;
+            }
+            Debug.Log("[Misdirection] Bootstrap resuming after a script reload (" + restarts + "/" + MaxRestarts + ")");
+            EditorApplication.delayCall += () => Start(wasBatch);
         }
 
         private static void Tick()
@@ -154,11 +191,21 @@ namespace Misdirection.EditorTools
             };
             yield return null;
 
-            // Fixes can unlock further fixes (e.g. after the XR loader is assigned), so run twice.
-            Log("8/8 Meta Project Setup Tool: Fix All");
-            yield return OVRProjectSetup.FixAllAsync(BuildTargetGroup.Android);
-            yield return null;
-            yield return OVRProjectSetup.FixAllAsync(BuildTargetGroup.Android);
+            // Some fixes are per scene (camera background, OVRManager passthrough), so open each scene,
+            // fix, and save it. Fixes can unlock further fixes, so run twice per scene.
+            foreach (string path in new[] { SpikeScenePath, MainScenePath, ShowScenePath })
+            {
+                Log("8/8 Meta Project Setup Tool: Fix All in " + Path.GetFileName(path));
+                Scene scene = EditorSceneManager.OpenScene(path, OpenSceneMode.Single);
+                yield return OVRProjectSetup.FixAllAsync(BuildTargetGroup.Android);
+                yield return null;
+                yield return OVRProjectSetup.FixAllAsync(BuildTargetGroup.Android);
+                RequestScenePermission();
+                if (!EditorSceneManager.SaveScene(scene))
+                {
+                    throw new IOException("Could not save " + path);
+                }
+            }
             AssetDatabase.SaveAssets();
         }
 
@@ -279,6 +326,9 @@ namespace Misdirection.EditorTools
             EditorApplication.update -= Tick;
             steps = null;
             waitingOn = null;
+            SessionState.EraseBool(ActiveKey);
+            SessionState.EraseBool(BatchKey);
+            SessionState.EraseInt(RestartsKey);
             if (ok)
             {
                 Debug.Log("[Misdirection] Bootstrap " + message + ".");
