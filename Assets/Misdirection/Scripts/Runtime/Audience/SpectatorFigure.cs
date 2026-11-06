@@ -198,7 +198,11 @@ namespace Misdirection.Audience
             {
                 Destroy(c);
             }
-            go.GetComponent<Renderer>().material.color = color;
+            Renderer r = go.GetComponent<Renderer>();
+            r.material.color = color;
+            // No shadows on spectators: cheaper on Quest, and no shadow acne on the curved primitives.
+            r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            r.receiveShadows = false;
             return go.transform;
         }
     }
