@@ -257,8 +257,10 @@ namespace Misdirection.Audience
                     {
                         spots.Add(new Vector3(slot.Position.X, floor, slot.Position.Y));
                     }
+                    bool narrowed = arc < arcHalfDegrees - 0.5f;
                     LayoutNote = result == LayoutResult.Open ? "Open floor across the table."
-                        : result == LayoutResult.Tightened ? "Arc tightened to ±" + Mathf.RoundToInt(arc) + "° to fit the room."
+                        : result == LayoutResult.Tightened
+                            ? (narrowed ? "Arc narrowed to ±" + Mathf.RoundToInt(arc) + "° to fit the room." : "Walls pulled some spectators closer.")
                         : "Room fits " + slots.Count + " of " + archetypes.Length + " spectators.";
                     return spots;
                 }
