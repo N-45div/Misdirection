@@ -211,6 +211,13 @@ namespace Misdirection.EditorTools
                     throw new IOException("Could not save " + path);
                 }
             }
+            // Editor Play mode and the Meta XR Simulator run as the PC target: give it Meta's settings too
+            // (OpenXR loader, interaction profiles, Direct3D 11). Done here, headless, because in the
+            // Editor UI the graphics-API change pops a blocking "restart Unity?" dialog.
+            Log("8/8 Meta Project Setup Tool: Fix All for the PC target (Play mode, XR Simulator)");
+            yield return OVRProjectSetup.FixAllAsync(BuildTargetGroup.Standalone);
+            yield return null;
+            yield return OVRProjectSetup.FixAllAsync(BuildTargetGroup.Standalone);
             AssetDatabase.SaveAssets();
         }
 
