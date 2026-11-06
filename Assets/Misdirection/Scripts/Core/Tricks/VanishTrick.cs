@@ -308,18 +308,15 @@ namespace Misdirection.Core.Tricks
             float clean = 1f - Clamp01(method.MaxCoverage);
             float doubt = 1f - 0.5f * Clamp01(input.AverageSuspicion);
             r.Amazement = Math.Min(1f + maxBonus, Math.Max(0f, clean * doubt + (clean > 0.5f ? bonus : 0f)));
-            float applause = applauseAt;
-            float gasp = gaspAt;
-            int perSpectator = tipsPerSpectator;
             if (r.SeenBy >= 0)
             {
                 r.Reaction = Reaction.Heckle;
             }
-            else if (r.Amazement >= applause)
+            else if (r.Amazement >= applauseAt)
             {
                 r.Reaction = Reaction.Applause;
             }
-            else if (r.Amazement >= gasp)
+            else if (r.Amazement >= gaspAt)
             {
                 r.Reaction = Reaction.Gasp;
             }
@@ -327,7 +324,7 @@ namespace Misdirection.Core.Tricks
             {
                 r.Reaction = Reaction.Heckle;
             }
-            r.Tips = r.Reaction == Reaction.Heckle ? 0 : (int)Math.Round(r.Amazement * perSpectator * Math.Max(1, input.Spectators));
+            r.Tips = r.Reaction == Reaction.Heckle ? 0 : (int)Math.Round(r.Amazement * tipsPerSpectator * Math.Max(1, input.Spectators));
             return r;
         }
 
