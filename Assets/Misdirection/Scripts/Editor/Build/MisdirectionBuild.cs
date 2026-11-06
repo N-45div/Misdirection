@@ -169,7 +169,9 @@ namespace Misdirection.EditorTools
                     "signed_with=" + (customKeystore ? "team" : "debug") + "\n" +
                     "development=" + (development ? "1" : "0") + "\n");
 
-                Debug.Log("[Misdirection] Build OK: " + Path.GetFullPath(apkPath) + " (" + (report.summary.totalSize / (1024 * 1024)) + " MB)");
+                // The report's totalSize counts uncompressed content; the file on disk is what gets uploaded.
+                long apkBytes = File.Exists(apkPath) ? new FileInfo(apkPath).Length : 0;
+                Debug.Log("[Misdirection] Build OK: " + Path.GetFullPath(apkPath) + " (" + (apkBytes / (1024 * 1024)) + " MB)");
                 return true;
             }
             finally
