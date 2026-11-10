@@ -21,6 +21,7 @@ EDITOR_VERSION=$(grep -E '^m_EditorVersion:' "$VERSION_FILE" | awk '{print $2}' 
 
 if [[ -z "${UNITY:-}" ]]; then
   for candidate in \
+    "/d/Unity/$EDITOR_VERSION/Editor/Unity.exe" \
     "/c/Unity/$EDITOR_VERSION/Editor/Unity.exe" \
     "/Applications/Unity/Hub/Editor/$EDITOR_VERSION/Unity.app/Contents/MacOS/Unity" \
     "$HOME/Unity/Hub/Editor/$EDITOR_VERSION/Editor/Unity" \

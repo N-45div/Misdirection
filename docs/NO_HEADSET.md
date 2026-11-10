@@ -10,7 +10,7 @@ The rules allow simulator footage for the video ("a Meta VR device, via XR Simul
 
 ## How to play it on the PC
 
-1. Unity Hub → **Installs → Locate** → `C:\Unity\6000.0.66f2\Editor\Unity.exe`, then **Projects → Add** → this folder.
+1. Unity Hub → **Installs → Locate** → `D:\Unity\6000.0.66f2\Editor\Unity.exe` (from Nov 10 all installs live on D:; older setups used `C:\Unity`), then **Projects → Add** → this folder.
 2. Open the project. Menu **Window → Meta → Meta XR Simulator → Activate**.
 3. Open `Assets/Misdirection/Scenes/Show.unity` and press **Play**. In the simulator window, pick a synthetic room with a table and switch the hands to webcam tracking.
 

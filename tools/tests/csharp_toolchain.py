@@ -3,7 +3,7 @@
 - With Mono installed (CI, Linux): mcs + mono.
 - On Windows without Mono: the Roslyn compiler that ships inside the Unity editor, against Unity's
   .NET Framework 4.8 reference assemblies; the .exe then runs on Windows' built-in .NET Framework.
-  The editor is found via UNITY_EDITOR_DATA, else C:\\Unity\\<version>\\Editor\\Data or the Unity
+  The editor is found via UNITY_EDITOR_DATA, else D:\\Unity or C:\\Unity\\<version>\\Editor\\Data or the Unity
   Hub default folder for the version in ProjectSettings/ProjectVersion.txt.
 """
 
@@ -30,7 +30,7 @@ def _unity_data() -> Optional[str]:
     candidates = [os.environ.get("UNITY_EDITOR_DATA", "")]
     version = _editor_version()
     if version:
-        candidates += [rf"C:\Unity\{version}\Editor\Data", rf"C:\Program Files\Unity\Hub\Editor\{version}\Editor\Data"]
+        candidates += [rf"D:\Unity\{version}\Editor\Data", rf"C:\Unity\{version}\Editor\Data",rf"C:\Program Files\Unity\Hub\Editor\{version}\Editor\Data"]
     for path in candidates:
         if path and os.path.exists(os.path.join(path, "DotNetSdkRoslyn", "csc.dll")):
             return path

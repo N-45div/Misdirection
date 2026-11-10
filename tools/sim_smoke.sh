@@ -11,7 +11,7 @@ source "$(dirname "$0")/_common.sh"
 EDITOR_VERSION=$(grep -E '^m_EditorVersion:' "$ROOT/ProjectSettings/ProjectVersion.txt" | awk '{print $2}' | tr -d '\r')
 UNITY="${UNITY:-}"
 if [[ -z "$UNITY" ]]; then
-  for candidate in "/c/Unity/$EDITOR_VERSION/Editor/Unity.exe" "/c/Program Files/Unity/Hub/Editor/$EDITOR_VERSION/Editor/Unity.exe"; do
+  for candidate in "/d/Unity/$EDITOR_VERSION/Editor/Unity.exe" "/c/Unity/$EDITOR_VERSION/Editor/Unity.exe""/c/Program Files/Unity/Hub/Editor/$EDITOR_VERSION/Editor/Unity.exe"; do
     if [[ -x "$candidate" ]]; then UNITY="$candidate"; break; fi
   done
 fi

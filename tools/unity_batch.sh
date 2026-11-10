@@ -28,6 +28,7 @@ if [[ -z "$UNITY" ]]; then
     "${UNITY_HOME:+$UNITY_HOME/Editor/Unity}" \
     "${UNITY_HOME:+$UNITY_HOME/Editor/Unity.exe}" \
     /opt/unity/Editor/Unity \
+    "/d/Unity/$EDITOR_VERSION/Editor/Unity.exe" \
     "/c/Unity/$EDITOR_VERSION/Editor/Unity.exe" \
     "/c/Program Files/Unity/Hub/Editor/$EDITOR_VERSION/Editor/Unity.exe" \
     "/Applications/Unity/Hub/Editor/$EDITOR_VERSION/Unity.app/Contents/MacOS/Unity" \
