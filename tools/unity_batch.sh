@@ -57,7 +57,10 @@ if [[ -n "${UNITY_EMAIL:-}" && -n "${UNITY_PASSWORD:-}" ]]; then
   if [[ -n "${UNITY_SERIAL:-}" ]]; then CRED_ARGS+=(-serial "$UNITY_SERIAL"); fi
 fi
 LOCAL_LICENCE=""
-for f in "$ULF_DIR/Unity_lic.ulf" "/c/ProgramData/Unity/Unity_lic.ulf" "/Library/Application Support/Unity/Unity_lic.ulf"; do
+# Hub 3 keeps a signed-in Personal licence as an entitlement file instead of Unity_lic.ulf.
+ENTITLEMENT="${LOCALAPPDATA:+$(cd "$LOCALAPPDATA" 2>/dev/null && pwd)/Unity/licenses/UnityEntitlementLicense.xml}"
+for f in "$ULF_DIR/Unity_lic.ulf" "/c/ProgramData/Unity/Unity_lic.ulf" "/Library/Application Support/Unity/Unity_lic.ulf" \
+         "$ENTITLEMENT" "$HOME/.config/unity3d/Unity/licenses/UnityEntitlementLicense.xml"; do
   if [[ -f "$f" ]]; then LOCAL_LICENCE="$f"; break; fi
 done
 if [[ -z "$LOCAL_LICENCE" && ${#CRED_ARGS[@]} -eq 0 ]]; then
