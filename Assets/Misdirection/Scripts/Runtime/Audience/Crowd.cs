@@ -74,6 +74,46 @@ namespace Misdirection.Audience
             }
         }
 
+        /// <summary>Who is in the audience, in arc order.</summary>
+        public IReadOnlyList<Archetype> Archetypes { get { return archetypes; } }
+
+        /// <summary>
+        /// Changes who is in the audience (the show grows the crowd each act). Re-places everyone if the
+        /// table is known and the line-up actually changed. Returns true if it did.
+        /// </summary>
+        public bool SetArchetypes(Archetype[] lineUp)
+        {
+            lineUp = lineUp ?? new Archetype[0];
+            bool same = archetypes != null && archetypes.Length == lineUp.Length;
+            for (int i = 0; same && i < lineUp.Length; i++)
+            {
+                same = archetypes[i] == lineUp[i];
+            }
+            if (same && spectators.Count == lineUp.Length)
+            {
+                return false;
+            }
+            archetypes = (Archetype[])lineUp.Clone();
+            if (model != null)
+            {
+                Spawn();
+            }
+            return true;
+        }
+
+        /// <summary>Index of the first spectator of this archetype, or -1.</summary>
+        public int IndexOf(Archetype archetype)
+        {
+            for (int i = 0; i < spectators.Count; i++)
+            {
+                if (spectators[i].Mind.Profile.Archetype == archetype)
+                {
+                    return i;
+                }
+            }
+            return -1;
+        }
+
         public void Configure(TableCalibrator tableCalibrator, LookSource look, TrackedHand left, TrackedHand right)
         {
             table = tableCalibrator;

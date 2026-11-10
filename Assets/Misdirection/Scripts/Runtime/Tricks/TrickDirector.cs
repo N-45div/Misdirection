@@ -70,11 +70,36 @@ namespace Misdirection.Tricks
         private AudioSource audioSource;
         private AudioClip pickupTone, ditchTone, clinkTone, applause, gasp, heckle, sparkle;
         private SpikeCsvLog log;
+        private bool hudVisible = true;
 
         public VanishTrick Trick { get { return trick; } }
+        public CoinActor Coin { get { return coin; } }
 
         /// <summary>Fires after the bow (Finale → Idle), so a ShowSequence can move on.</summary>
         public event Action Completed;
+        public event Action<RevealResult> Revealed;
+        public event Action Busted;
+
+        public bool HudVisible
+        {
+            get { return hudVisible; }
+            set
+            {
+                hudVisible = value;
+                if (hud != null)
+                {
+                    hud.gameObject.SetActive(value && isActiveAndEnabled);
+                }
+            }
+        }
+
+        public void ResetTrick()
+        {
+            if (leftHand != null && rightHand != null && coin != null)
+            {
+                ResetCoin();
+            }
+        }
 
         public void Configure(TrackedHand left, TrackedHand right, TableCalibrator tableCalibrator, CoinActor coinActor, Crowd audience, LookSource look)
         {
@@ -122,7 +147,7 @@ namespace Misdirection.Tricks
             }
             if (hud != null)
             {
-                hud.gameObject.SetActive(true);
+                hud.gameObject.SetActive(hudVisible);
             }
             // Taking over from another trick in the show: start from a clean mat.
             if (table != null && table.Calibrated && leftHand != null && rightHand != null && coin != null)
@@ -323,6 +348,10 @@ namespace Misdirection.Tricks
         private void OnReveal(RevealResult r, double now)
         {
             Log(now, "reveal", r.Kind, r);
+            if (Revealed != null)
+            {
+                Revealed(r);
+            }
             bool spatial = crowd != null && crowd.Spectators.Count > 0;
             if (spatial)
             {
@@ -391,6 +420,10 @@ namespace Misdirection.Tricks
                     crowd.React(Reaction.Heckle, -1);
                 }
                 ShowReaction("<color=#FF7043>" + trick.Prompt + "</color>", -1, now);
+                if (Busted != null)
+                {
+                    Busted();
+                }
             }
             if (to == TrickPhase.Idle && from == TrickPhase.Finale && Completed != null)
             {

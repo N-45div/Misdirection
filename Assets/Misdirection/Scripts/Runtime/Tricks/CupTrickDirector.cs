@@ -50,11 +50,36 @@ namespace Misdirection.Tricks
         private HandId cupHolder = HandId.None;
         private CupPhase lastPhase = CupPhase.Idle;
         private TrickFeedback feedback;
+        private bool hudVisible = true;
 
         public CupTrick Trick { get { return trick; } }
+        public CoinActor Coin { get { return coin; } }
 
         /// <summary>Fires after the bow (Finale → Idle).</summary>
         public event Action Completed;
+        public event Action<RevealResult> Revealed;
+        public event Action Busted;
+
+        public bool HudVisible
+        {
+            get { return hudVisible; }
+            set
+            {
+                hudVisible = value;
+                if (feedback != null)
+                {
+                    feedback.SetHudVisible(value && isActiveAndEnabled);
+                }
+            }
+        }
+
+        public void ResetTrick()
+        {
+            if (trick != null)
+            {
+                ResetProps();
+            }
+        }
 
         public void Configure(TrackedHand left, TrackedHand right, TableCalibrator tableCalibrator, CoinActor coinActor, CupActor cupActor,
                               Crowd audience, LookSource look)
@@ -91,6 +116,7 @@ namespace Misdirection.Tricks
             if (feedback != null)
             {
                 feedback.SetVisible(true);
+                feedback.SetHudVisible(hudVisible);
             }
             if (table != null && table.Calibrated)
             {
@@ -170,6 +196,10 @@ namespace Misdirection.Tricks
             {
                 feedback.React(reveal.Value, crowd, table, now);
                 feedback.Log(now, trick.Phase.ToString(), "reveal", null, reveal, Name);
+                if (Revealed != null)
+                {
+                    Revealed(reveal.Value);
+                }
                 if (reveal.Value.Kind == "cup")
                 {
                     feedback.Play(feedback.Sparkle);
@@ -188,6 +218,10 @@ namespace Misdirection.Tricks
                         crowd.React(Reaction.Heckle, -1);
                     }
                     feedback.ShowReaction("<color=#FF7043>" + trick.Prompt + "</color>", -1, crowd, table, now);
+                    if (Busted != null)
+                    {
+                        Busted();
+                    }
                 }
                 if (trick.Phase == CupPhase.Idle)
                 {

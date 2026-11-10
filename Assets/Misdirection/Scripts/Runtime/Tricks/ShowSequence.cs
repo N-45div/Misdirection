@@ -1,4 +1,5 @@
 using System;
+using Misdirection.Core.Tricks;
 using UnityEngine;
 
 namespace Misdirection.Tricks
@@ -8,12 +9,24 @@ namespace Misdirection.Tricks
     {
         /// <summary>Fires when the trick has finished (after the bow), not when it busts.</summary>
         event Action Completed;
+
+        /// <summary>Fires on each reveal (applause, gasp or heckle), with the crowd's verdict.</summary>
+        event Action<RevealResult> Revealed;
+
+        /// <summary>Fires when the method is exposed (coin in plain view, ditched too early, ...).</summary>
+        event Action Busted;
+
+        /// <summary>Props back on the mat and the trick at its start.</summary>
+        void ResetTrick();
+
+        /// <summary>The text prompt above the table. The tutorial hides it and teaches with ghost hands.</summary>
+        bool HudVisible { get; set; }
     }
 
     /// <summary>
     /// Runs tricks one after another: only the current trick is enabled (they share the coin, hands,
-    /// table and crowd); when it completes, the next one starts, wrapping round. First slice of the
-    /// Day 8 show flow (three-trick set, tips, walk-offs come then).
+    /// table and crowd); when it completes, the next one starts, wrapping round. Superseded by
+    /// <see cref="Misdirection.Show.ShowDirector"/> (acts, tutorial, bow, pause), which turns this off.
     /// </summary>
     [DefaultExecutionOrder(20)]
     public sealed class ShowSequence : MonoBehaviour

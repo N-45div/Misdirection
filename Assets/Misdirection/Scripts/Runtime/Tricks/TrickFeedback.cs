@@ -87,6 +87,12 @@ namespace Misdirection.Tricks
             }
         }
 
+        /// <summary>Only the prompt; floating crowd reactions still show.</summary>
+        public void SetHudVisible(bool visible)
+        {
+            hud.gameObject.SetActive(visible);
+        }
+
         /// <summary>Applause, gasp or heckle for a reveal, floating above whoever it concerns.</summary>
         public void React(RevealResult r, Crowd crowd, TableCalibrator table, double now)
         {
