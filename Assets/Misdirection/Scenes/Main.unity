@@ -1853,6 +1853,7 @@ MonoBehaviour:
     MatHalfWidth: 0.22
   furnitureLabels: 8088
   scanTimeoutSeconds: 6
+  retrySeconds: 15
 --- !u!114 &1741107808
 MonoBehaviour:
   m_ObjectHideFlags: 0
