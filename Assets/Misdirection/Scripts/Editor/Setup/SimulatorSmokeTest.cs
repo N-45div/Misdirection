@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Misdirection.Audience;
 using Misdirection.Core.Table;
+using Misdirection.Show;
 using Misdirection.Table;
 using Misdirection.Tricks;
 using UnityEditor;
@@ -130,6 +131,8 @@ namespace Misdirection.EditorTools
         {
             // Start every run without last session's table, so the room-scan path is what gets tested.
             PlayerPrefs.DeleteKey(TableAnchorStore.PrefsKey);
+            // ...and as a first launch, so the tutorial (first five minutes) is what plays.
+            ShowDirector.ForgetTutorial();
             PlayerPrefs.Save();
             EditorSceneManager.OpenScene(MisdirectionBootstrap.ShowScenePath, OpenSceneMode.Single);
             Log("entering Play mode in Show.unity");
@@ -213,7 +216,12 @@ namespace Misdirection.EditorTools
             int spectators = crowd != null ? crowd.Spectators.Count : 0;
             bool crowdOk = spectators > 0;
             bool trickOk = activeTrick != "none";
-            bool pass = Errors.Count == 0 && tableOk && crowdOk && trickOk;
+            ShowDirector show = UnityEngine.Object.FindFirstObjectByType<ShowDirector>();
+            MentorHands mentor = UnityEngine.Object.FindFirstObjectByType<MentorHands>();
+            string stage = show != null && show.Flow != null ? show.Flow.Stage.ToString() : "no ShowDirector";
+            // With the table set on a first launch, the show must have moved on to the tutorial.
+            bool showOk = show != null && show.Flow != null && show.Flow.Stage != Core.Show.ShowStage.Setup;
+            bool pass = Errors.Count == 0 && tableOk && crowdOk && trickOk && showOk;
             SessionState.SetInt(ExitCodeKey, pass ? 0 : 1);
 
             CultureInfo inv = CultureInfo.InvariantCulture;
@@ -230,13 +238,18 @@ namespace Misdirection.EditorTools
             json.Append("  \"spectators\": ").Append(spectators).Append(",\n");
             json.Append("  \"crowd_layout\": \"").Append(Escape(crowd != null ? crowd.LayoutNote : "")).Append("\",\n");
             json.Append("  \"active_trick\": \"").Append(activeTrick).Append("\",\n");
+            json.Append("  \"show_stage\": \"").Append(stage).Append("\",\n");
+            json.Append("  \"tutorial_step\": \"").Append(show != null && show.Tutorial != null ? show.Tutorial.Step.ToString() : "").Append("\",\n");
+            json.Append("  \"paused\": \"").Append(show != null ? show.PauseReason.ToString() : "").Append("\",\n");
+            json.Append("  \"mentor_demo\": \"").Append(mentor != null ? mentor.Demo.ToString() : "no MentorHands").Append("\",\n");
+            json.Append("  \"time_scale\": ").Append(Time.timeScale.ToString("F2", inv)).Append(",\n");
             json.Append("  \"editor_fps\": ").Append(fps.ToString("F1", inv)).Append(",\n");
             json.Append("  \"notes\": [").Append(JoinQuoted(Notes)).Append("],\n");
             json.Append("  \"errors\": [").Append(JoinQuoted(Errors)).Append("]\n");
             json.Append("}\n");
             File.WriteAllText(Path.Combine(ReportDir, "report.json"), json.ToString());
             Log("report written: pass=" + pass + " table=" + (table != null ? table.Source.ToString() : "missing") +
-                " spectators=" + spectators + " trick=" + activeTrick + " errors=" + Errors.Count);
+                " spectators=" + spectators + " trick=" + activeTrick + " show=" + stage + " errors=" + Errors.Count);
         }
 
         private static void OnLog(string message, string stackTrace, LogType type)

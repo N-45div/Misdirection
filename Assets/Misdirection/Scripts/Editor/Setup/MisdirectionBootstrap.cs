@@ -199,8 +199,10 @@ namespace Misdirection.EditorTools
                 Scene scene = EditorSceneManager.OpenScene(path, OpenSceneMode.Single);
                 if (path == ShowScenePath)
                 {
-                    // Day 6: Trick 2 (coin under the cup) and the show sequence, added to older Show scenes too.
+                    // Day 6: Trick 2 (coin under the cup); Day 9: the show director (tutorial, acts, bow, pause)
+                    // replaces the alternating sequence. Added to older Show scenes too.
                     ShowSetup.EnsureCupTrickAndSequence(false);
+                    ShowSetup.EnsureShowDirector(false);
                 }
                 yield return OVRProjectSetup.FixAllAsync(BuildTargetGroup.Android);
                 yield return null;
