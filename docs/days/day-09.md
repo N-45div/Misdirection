@@ -3,7 +3,9 @@
 **Exit criterion:** a new player reaches the first applause in **under 2 minutes with no help**. With no Quest, they play in the Meta XR Simulator on the PC ([NO_HEADSET.md](../NO_HEADSET.md)).
 **Feature freeze tonight.** After today, only the planned retention (Day 10) and accessibility (Day 11) work, then fixes.
 
-Written on Nov 10. Day 8's show flow had slipped, so it lands today too. 20 new unit tests (94 core tests in total, all passing). Simulator check pending (Unity and the simulator are being installed on the PC).
+Written on Nov 10. Day 8's show flow had slipped, so it lands today too. 20 new unit tests (94 core tests in total, all passing). Compiles against Unity 6000.0.66f2 + Meta v207 for the Editor and the Android player.
+
+**Simulator smoke test, Nov 10: PASS** (Meta XR Simulator 207.1, `tools/sim_smoke.sh`). Table found in the room scan, show in `Tutorial` with just the Kid, Trick 1 live, tutorial at `PickUp`, 71 fps in the Editor, no errors. Nobody's hands were in view, so after 2 s the show paused (`HandsGone`, time scale 0, ghost hands up), as designed. The ghost hands still need a look by eye: that's the hands-on check below.
 
 ## What changed
 

@@ -36,7 +36,7 @@ Entry for the Meta Horizon Start Developer Competition 2026, Gaming track (Best 
 | 6 | Sat Nov 7 | **Code written early (Nov 6):** Trick 2, the coin under the cup (load at the cup's base, show the hand empty, lift the cup); shared reveal scoring; Show.unity alternates Trick 1 and Trick 2. First debug APK built locally on Nov 6 ([runbook](docs/days/day-06.md)) |
 | 7 | Sun Nov 8 | **Code written early (Nov 6):** readable crowd: faces (brows, mouth), arms (fold, clap, point, hands up), lean, accessories, 3-D murmurs, claps, gasps and "hm!"; reveals play through the crowd. Runs in the Meta XR Simulator smoke test ([runbook](docs/days/day-07.md)) |
 | 8 | Mon Nov 9 | Slipped; the show flow landed on Day 9 |
-| 9 | Tue Nov 10 | **Gate 3, feature freeze.** The show has a start and an end: first-launch tutorial with the Kid and ghost mentor hands, three acts with a growing crowd, bow with tips and stars, walk-off after 3 busts, pick up the coin to go again; pause when both hands leave or focus is lost. 94 core tests. Simulator check and fresh-eyes test pending ([runbook](docs/days/day-09.md)) |
+| 9 | Tue Nov 10 | **Gate 3, feature freeze.** The show has a start and an end: first-launch tutorial with the Kid and ghost mentor hands, three acts with a growing crowd, bow with tips and stars, walk-off after 3 busts, pick up the coin to go again; pause when both hands leave or focus is lost. 94 core tests. Simulator smoke test passes (tutorial starts with the Kid; pause works). Hands-on check and fresh-eyes test pending ([runbook](docs/days/day-09.md)) |
 
 ## Getting started
 
