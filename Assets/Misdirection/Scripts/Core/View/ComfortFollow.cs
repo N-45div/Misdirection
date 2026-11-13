@@ -22,6 +22,11 @@ namespace Misdirection.Core.View
         public float SlackDegrees = 4f;
         /// <summary>How fast the element eases to where it should be (1/s). 5 settles in about half a second.</summary>
         public float FollowRate = 5f;
+        /// <summary>
+        /// If the home moves further than this in one frame (metres), it is a different place (a new
+        /// caption, a reaction above another head): the element appears there instead of sliding across.
+        /// </summary>
+        public float JumpMetres = 0.05f;
     }
 
     /// <summary>
@@ -30,14 +35,18 @@ namespace Misdirection.Core.View
     /// around the view direction, it sits at home. When the player looks away for longer than a glance,
     /// it eases to the nearest point inside the zone and then stays there, fixed in the room, until the
     /// view moves on again; when the home is comfortable again it eases back. It never jumps and never
-    /// chases small head movements. Pure logic: feed it the eye, the view direction and the frame time.
+    /// chases small head movements. While it is at home it is fixed to its home exactly, so on a wide
+    /// field of view, looking at the table, nothing differs from a plain fixed label.
+    /// Pure logic: feed it the eye, the view direction and the frame time.
     /// </summary>
     public sealed class ComfortFollow
     {
         private readonly ComfortSettings settings;
         private Vector3 goal;
+        private Vector3 lastHome;
         private double outFor;
         private bool started;
+        private bool attached;
 
         public ComfortFollow(ComfortSettings settings = null)
         {
@@ -54,6 +63,7 @@ namespace Misdirection.Core.View
         public void Reset()
         {
             started = false;
+            attached = false;
             Displaced = false;
             outFor = 0;
         }
@@ -65,10 +75,17 @@ namespace Misdirection.Core.View
         public Vector3 Update(Vector3 eye, Vector3 forward, Vector3 home, float dt)
         {
             FieldOfView comfort = new FieldOfView(settings.HorizontalDegrees, settings.VerticalDegrees);
+            if (started && Vector3.DistanceSquared(home, lastHome) > settings.JumpMetres * settings.JumpMetres)
+            {
+                // The home is somewhere else altogether: start again there.
+                Reset();
+            }
+            lastHome = home;
             if (forward.LengthSquared() < 1e-12f)
             {
                 // No view direction: nothing to be comfortable about.
                 started = true;
+                attached = true;
                 Displaced = false;
                 goal = home;
                 Position = home;
@@ -79,6 +96,7 @@ namespace Misdirection.Core.View
             {
                 // First frame on show: appear where it can be read, no glide.
                 started = true;
+                attached = comfortable;
                 Displaced = !comfortable;
                 outFor = 0;
                 goal = comfortable ? home : ViewCone.Nearest(eye, forward, comfort, home);
@@ -109,8 +127,16 @@ namespace Misdirection.Core.View
                 goal = ViewCone.Nearest(eye, forward, comfort, home);
             }
 
+            if (attached && !Displaced)
+            {
+                // At home it is fixed to its home (which may itself move, like a reaction drifting up).
+                Position = home;
+                return Position;
+            }
             float k = dt > 0f ? 1f - (float)Math.Exp(-settings.FollowRate * dt) : 0f;
             Position = Position + (goal - Position) * k;
+            // Back within a millimetre of home: fixed to it again.
+            attached = !Displaced && Vector3.DistanceSquared(Position, home) < 1e-6f;
             return Position;
         }
     }

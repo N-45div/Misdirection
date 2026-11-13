@@ -272,6 +272,44 @@ public static class ComfortFollowTests
     }
 
     [Test]
+    public static void AtHomeItIsFixedToItsHomeEvenWhenHomeMoves()
+    {
+        ComfortFollow follow = new ComfortFollow();
+        Vector3 forward = Look(0f, -10f);
+        Vector3 home = Hud;
+        follow.Update(Eye, forward, home, Dt);
+        // A reaction drifting up 4 cm a second: no lag at all.
+        for (int i = 0; i < 72; i++)
+        {
+            home += new Vector3(0f, 0.04f * Dt, 0f);
+            Vector3 p = follow.Update(Eye, forward, home, Dt);
+            Assert.Near(0, Vector3.Distance(p, home), 1e-6, "exactly at home");
+        }
+        // Also during the delay after looking away: still exactly at home.
+        Vector3 q = follow.Update(Eye, Look(0f, 40f), home, Dt);
+        Assert.Near(0, Vector3.Distance(q, home), 1e-6, "at home during the delay");
+    }
+
+    [Test]
+    public static void AHomeThatJumpsIsANewPlaceNotASlide()
+    {
+        ComfortFollow follow = new ComfortFollow();
+        Vector3 forward = Look(0f, 13f);
+        Run(follow, Look(0f, -17.5f), Hud, 0.5);
+        Run(follow, forward, Hud, 3.0);
+        Assert.True(follow.Displaced, "displaced first");
+        // The caption moves to a spot 30 cm away that is comfortable: it is simply there.
+        Vector3 newHome = ViewConeTests.At(5f, 10f, 1.4f);
+        Vector3 p = follow.Update(Eye, forward, newHome, Dt);
+        Assert.Near(0, Vector3.Distance(p, newHome), 1e-6, "appears at the new home");
+        Assert.False(follow.Displaced, "not displaced");
+        // ...and a jump to an uncomfortable spot appears inside the zone at once.
+        Vector3 farHome = ViewConeTests.At(-70f, 0f, 1.4f);
+        Vector3 r = follow.Update(Eye, forward, farHome, Dt);
+        Assert.True(ViewCone.Contains(Eye, forward, FieldOfView.Comfort, r), "inside the zone on the first frame");
+    }
+
+    [Test]
     public static void SettingsChangeTheZone()
     {
         ComfortSettings wide = new ComfortSettings();
