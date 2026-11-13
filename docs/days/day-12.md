@@ -3,7 +3,7 @@
 **Exit criterion:** at least **72 fps on Quest 3S** (the rules ask for 60), and the essential UI **inside the simulated glasses field of view**.
 With no Quest ([NO_HEADSET.md](../NO_HEADSET.md)) the frame rate can't be measured, so today's work makes the build cheap to draw *by construction*, adds numbers we can compare on the PC, and leaves a frame-time log ready for the first hour on a real headset.
 
-Written on Nov 13. 26 new unit tests (120 core tests in total, all passing). Compiles against Unity 6000.0.66f2 + Meta v207 for the Editor and the Android player.
+Written on Nov 13. 28 new unit tests (122 core tests in total, all passing). Compiles against Unity 6000.0.66f2 + Meta v207 for the Editor and the Android player.
 
 **Not run yet:** the Editor, the simulator and the smoke test. Nothing below has been seen on a screen. The first job after merging is the setup step and the checks in this file.
 
@@ -56,7 +56,7 @@ The part after the frame count comes from the headset (OVRPlugin perf metrics) a
 Meta VR Glasses see about **70° × 66°**; Quest 3 about 110°. Meta's own simulation in the v207 SDK masks to **35° left and right, 25° up, 41° down**, so the view is not centred: it reaches further down than up. We use those numbers.
 
 - The layout was already narrow by design: crowd within ±20°, prompt and banner straight ahead. Looking at the table or the crowd, everything essential is inside the glasses' view.
-- New: essential text **follows when you really look away**. Each element has a home. While the home is inside a comfortable zone around the head direction (**50° wide, 20° up, 33° down**), nothing moves. After **0.6 s** outside it, the element eases (about half a second) to the nearest point inside the zone, then stays fixed in the room until the view moves on by more than 4°. When its home is comfortable again it eases back. It never jumps, and a still or trembling head means still text.
+- New: essential text **follows when you really look away**. Each element has a home. While the home is inside a comfortable zone around the head direction (**50° wide, 20° up, 33° down**), or within 4° of it, nothing moves. After **0.6 s** further out than that, the element eases (about half a second) to the nearest point inside the zone, then stays fixed in the room until the view moves on by more than 4°. When its home is comfortable again it eases back. It never jumps, and a still or trembling head means still text.
 - What follows: the trick prompt, the show banner and star coins (as one set, so they keep their arrangement), the floating reaction above a spectator, and the ghost hands' caption (its zone is 4° larger so it settles clear of the others). Following text never sinks below 6 cm above the table.
 - What doesn't: suspicion markers above heads (they belong to the person), ghost hands, the cones.
 - With these numbers the prompt stays home through a whole trick: looking at the mat, level, or into the eyes of a tall spectator at the edge of the arc. It moves when you look above the crowd or turn well away.
