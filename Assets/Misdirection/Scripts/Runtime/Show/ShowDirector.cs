@@ -70,6 +70,9 @@ namespace Misdirection.Show
         public bool Paused { get { return pause.Paused; } }
         public PauseReason PauseReason { get { return pause.Reason; } }
 
+        /// <summary>Day 11 access hook: the tutorial's live timings, so relaxed timing can scale them.</summary>
+        public TutorialSettings TutorialSettings { get { return tutorialSettings; } }
+
         public void Configure(MonoBehaviour[] trickDirectors, Crowd audience, TableCalibrator tableCalibrator, TrackedHand left,
                               TrackedHand right, LookSource look, MentorHands mentorHands)
         {

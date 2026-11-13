@@ -60,6 +60,9 @@ namespace Misdirection.Table
         public TableFrame Frame { get; private set; }
         public ServanteZone Zone { get { return zone; } }
 
+        /// <summary>Day 11 access hook: the servante's outline (null until first calibrated), so high contrast can make it bold.</summary>
+        public LineRenderer ServanteOutline { get { return outline; } }
+
         /// <summary>Set false while a trick is in progress so resting palms can't move the table.</summary>
         public bool AllowRecalibration { get; set; }
 

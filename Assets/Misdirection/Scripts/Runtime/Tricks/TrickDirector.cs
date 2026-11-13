@@ -75,6 +75,9 @@ namespace Misdirection.Tricks
         public VanishTrick Trick { get { return trick; } }
         public CoinActor Coin { get { return coin; } }
 
+        /// <summary>Day 11 access hook: the trick's live timings, so relaxed timing can scale them.</summary>
+        public VanishTrickSettings Settings { get { return trickSettings; } }
+
         /// <summary>Fires after the bow (Finale → Idle), so a ShowSequence can move on.</summary>
         public event Action Completed;
         public event Action<RevealResult> Revealed;

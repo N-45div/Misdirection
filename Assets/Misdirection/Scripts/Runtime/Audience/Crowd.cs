@@ -77,6 +77,9 @@ namespace Misdirection.Audience
         /// <summary>Who is in the audience, in arc order.</summary>
         public IReadOnlyList<Archetype> Archetypes { get { return archetypes; } }
 
+        /// <summary>Day 11 access hook: the live attention timings, so relaxed timing can lengthen the eye-contact window.</summary>
+        public AttentionSettings Attention { get { return attentionSettings; } }
+
         /// <summary>
         /// Changes who is in the audience (the show grows the crowd each act). Re-places everyone if the
         /// table is known and the line-up actually changed. Returns true if it did.
