@@ -19,30 +19,27 @@ Copy each field into the [Devpost form](https://start-developer-competition-26.d
 
 ### Inspiration
 
-Close-up magicians don't hide the move. They move your attention. A glance at someone's face, a flourish of the empty hand, and the coin in the other hand goes where nobody is looking.
-
-A headset knows where you're looking. So we made that the core verb: in Misdirection, **where you look, they look**. You sit at your own table in passthrough, a small street crowd gathers across it, and their eyes follow yours. Look a spectator in the eye and they lock onto your face; gesture with your show hand and heads turn; meanwhile your secret hand palms, ditches and produces a coin, slowly and low, at your real table edge.
+Close-up magicians don't hide the move. They move your attention: a glance at someone's face, a flourish of the empty hand, and the coin goes where nobody is looking. A headset knows where you look, so we made that the core verb. In Misdirection, **where you look, they look**.
 
 ### What it is
 
-- **Your table is the stage.** The Quest's room scan finds your table, and a spatial anchor remembers it next time. Rest your palms on it if there's no scan. Spectators stand on open floor, clear of your walls and furniture.
-- **A crowd that pays attention.** Each spectator blends where you look, your flourishes and any sounds. Tourists follow your gaze, the Kid chases movement, the Skeptic watches your hands, the Filmer holds a phone on the table. A method seen inside someone's attention cone makes them suspicious: "Hm!".
-- **Two tricks, three acts.** Vanish a coin and pluck it from a spectator's ear by looking at them and pinching; then the coin under the cup. The crowd grows each act; tips and stars at the bow, or a walk-off after three busts.
-- **A first five minutes with no wall of text.** Ghost hands show each move. One spectator, the Kid, teaches the rule: look her in the eyes, drop the coin behind the edge, show her your empty hand. She gasps and claps.
-- **A reason to come back.** A new crowd and a daily challenge every day, a trick book with mastery stars, a streak, and a returning Regular who remembers how you fooled him yesterday and won't fall for it twice.
-- **Accessible by default.** One-handed play switches on by itself (one-palm table setup, one-hand pause and resume). Relaxed timing, captions for the crowd's sounds, high contrast, and an Access Tray you can toggle just by looking at it for 1.5 seconds. An optional "Look!" or clap works as a voice alternative to the flourish gesture.
+You sit at your own table in passthrough while a small street crowd gathers across it, and their eyes follow yours. Look a spectator in the eye and they lock onto your face; flourish your show hand and heads turn; meanwhile your secret hand palms, ditches and produces a coin, low and slow, at your real table edge. A move seen inside someone's attention cone makes them suspicious: "Hm!"
+
+- **Your table is the stage.** The room scan finds it, a spatial anchor remembers it, and palms on the table work without a scan. Spectators stand clear of your walls and furniture.
+- **Two tricks, three acts.** Vanish a coin and pluck it from a spectator's ear by looking at them and pinching; then the coin under the cup. The crowd grows each act: tips and stars at the bow, or a walk-off after three busts.
+- **A first five minutes with no wall of text.** Ghost hands show each move, and the Kid teaches the rule until she gasps and claps.
+- **A reason to come back.** A new crowd and challenge every day, a trick book with mastery stars, a streak, and a Regular who remembers how you fooled him yesterday.
+- **Accessible by default.** One-handed play switches on by itself. Relaxed timing, captions, high contrast, an Access Tray you can toggle just by looking at it, and an optional "Look!" or clap instead of the flourish.
 
 ### How we built it
 
-Unity 6 with Meta XR SDK v207: hand tracking, passthrough, scene understanding (MRUK) and spatial anchors. **Gaze runs through the Interaction SDK v207:** every spectator's face is a `GazeInteractable`, hovered by a `GazeInteractor` that follows your head on Quest 3 and 3S (and your eyes where a device has eye tracking). We wrote our own hand-tracking rules for magic: a sticky pinch with the coin parented to the wrist, no release decisions while tracking confidence is low, and hands that freeze, fade and blend back when tracking drops. The show pauses when both hands leave view.
+Unity 6 and Meta XR SDK v207: hand tracking, passthrough, scene understanding (MRUK), spatial anchors, and **Interaction SDK gaze**: every face is a `GazeInteractable`, hovered by a `GazeInteractor` that follows your head on Quest 3 and 3S. Our own hand-tracking rules make magic dependable: a sticky pinch, no release while tracking is unsure, hands that freeze and blend back, and a pause when both hands leave view.
 
-**Built for Quest 3 and 3S, and for narrower views.** Everything is drawn with a handful of shared materials (46 draw calls in a full scene), with dynamic foveation and a 72 Hz request on the headset. The prompt, banner and captions ease back into a comfortable view when you look away, and we check that the essential UI fits a 70° × 66° glasses-sized view.
-
-The game rules (attention, suspicion, tricks, the show, the tutorial, progress, accessibility and layout) are engine-free C#, with **225 unit tests**. We built it without a headset: Meta XR Simulator 207 with webcam hand tracking and synthetic rooms, plus an automated simulator smoke test after every change. Release builds pass Meta's upload validation and security checks.
+Shared materials keep a full scene at 46 draw calls, with dynamic foveation at 72 Hz, and essential UI eases back into a 70° × 66° view when you look away. The rules are engine-free C# with **225 unit tests**. We had no headset, so we built and tested in Meta XR Simulator 207 with webcam hands and synthetic rooms, with an automated smoke test after every change. Release builds pass Meta's upload checks.
 
 ### What's next
 
-On-device tuning on Quest 3 and 3S with outside playtesters; more tricks (the French drop, a card force); and **Night Train Con**, a campaign that moves the act onto a night train: coin magic for the passengers who are awake, pickpocketing in time with the sleepers' breathing and gaze, and a briefcase to crack.
+Tuning on Quest 3 and 3S with outside playtesters, more tricks, and **Night Train Con**: coin magic for a night train's passengers, pickpocketing in time with the sleepers' breathing, and a briefcase to crack.
 
 ## Hand interactions (optional field)
 
