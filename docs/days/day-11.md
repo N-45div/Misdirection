@@ -22,7 +22,7 @@ Choices are saved on the device and survive restarts.
 ### One-handed play
 
 - **Switches on by itself.** One hand in view for 5 s while the other has never been seen (8 s if it has), and the game plays one-handed. Both hands steadily in view for 1.5 s switches it off again. The *One hand* token overrides: **auto → on → off**.
-- **Table:** rest **one palm** flat with the heel of the hand at the table's edge and hold still for 1 s. The palm gives the height and the distance of the edge; the mat is centred in front of your head, facing the way your head faces, whichever hand you used. Moving a table that is already set takes 5 s **while looking at the palm**, so a hand resting on the table during the show can't move it. (The room scan and the saved anchor still set the table with no hands at all.)
+- **Table:** rest **one palm** flat with the heel of the hand at the table's edge and hold still for 1.5 s (two palms need 1 s; one open hand held still is a more common pose, so it has to be a little more deliberate). The palm gives the height and the distance of the edge; the mat is centred in front of your head, facing the way your head faces, whichever hand you used. Moving a table that is already set takes 5 s **while looking at the palm**, so a hand resting on the table during the show can't move it. (The room scan and the saved anchor still set the table with no hands at all.)
 - **Pause:** your hand out of view for 2 s pauses ("the crowd waits"); back for 0.5 s resumes. Before Day 11 a one-handed player could pause the show and never resume it.
 - **Ghost hands:** one hand, on your side, for every step. Captions change to "Rest one palm flat on the table" and "Show your hand to carry on".
 - **Tricks:** both already ran on one hand, and now a test proves it. Trick 1: pick up, show, ditch, show the same hand empty, steal back, look and pinch to produce. Trick 2: pick up, show, open the hand at the cup's base, show it empty, pinch the cup's top and lift. The hand holding the coin can't also take the cup, so nothing fires by accident.
@@ -137,7 +137,7 @@ Someone who has not played, using one hand only (the other in a pocket), webcam 
 | ... → Access Tray | Poke Seconds, Touch Radius, Poke Max Openness | 0.5 s, 3.5 cm, 0.6 |
 | ... → Voice Look → Settings | Loud Ratio, Min Level, Max Loud, Refractory | ×4, 0.04, 0.9 s, 1.2 s |
 | ... → Voice Look | Game Sound Level (microphone ignored above this) | 0.06 |
-| Table Calibrator | One Palm Recalibrate Hold / Look Degrees | 5 s / 20° |
+| Table Calibrator | One Palm Hold / One Palm Recalibrate Hold / Look Degrees | 1.5 s / 5 s / 20° |
 | `AccessSettings.cs` | Cone width ×1.25 and alpha ×3, marker ×1.7, text ×1.3, outline 8 mm yellow | high contrast |
 
 ## Known limits

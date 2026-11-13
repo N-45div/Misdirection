@@ -43,7 +43,9 @@ namespace Misdirection.Table
         [SerializeField] private float minDropBelowEyes = 0.30f;
         [Tooltip("Wrists must stay within this speed (m/s) to count as resting.")]
         [SerializeField] private float maxRestSpeed = 0.05f;
-        [Tooltip("One-handed: holding one palm flat this long, while looking at it, recalibrates an already calibrated table. Longer than for two palms: one resting hand is a common pose.")]
+        [Tooltip("One-handed: one palm must rest flat this long to set the table. Longer than for two palms: one open hand held still is a more common pose than two.")]
+        [SerializeField] private float onePalmHoldSeconds = 1.5f;
+        [Tooltip("One-handed: holding one palm flat this long, while looking at it, recalibrates an already calibrated table.")]
         [SerializeField] private float onePalmRecalibrateHoldSeconds = 5.0f;
         [Tooltip("One-handed recalibration only counts while the player looks within this many degrees of the resting palm.")]
         [SerializeField] private float onePalmRecalibrateLookDegrees = 20f;
@@ -200,7 +202,7 @@ namespace Misdirection.Table
             }
 
             heldFor = resting ? heldFor + Time.deltaTime : 0f;
-            float needed = Calibrated ? onePalmRecalibrateHoldSeconds : holdSeconds;
+            float needed = Calibrated ? onePalmRecalibrateHoldSeconds : onePalmHoldSeconds;
             Progress = Mathf.Clamp01(heldFor / needed);
             if (heldFor < needed)
             {
