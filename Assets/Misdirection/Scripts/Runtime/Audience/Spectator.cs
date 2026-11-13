@@ -1,3 +1,4 @@
+using Misdirection.Access;
 using Misdirection.Core.Crowd;
 using Misdirection.Core.Tricks;
 using TMPro;
@@ -154,6 +155,8 @@ namespace Misdirection.Audience
             {
                 marker.text = text;
             }
+            // Day 11 access hook: larger suspicion markers in high contrast.
+            marker.transform.localScale = Vector3.one * AccessSettings.MarkerScale;
             WorldText.Face(marker.transform, viewer);
         }
 
@@ -228,11 +231,13 @@ namespace Misdirection.Audience
             {
                 return;
             }
-            float radius = Mathf.Tan(halfAngleDegrees * Mathf.Deg2Rad) * length;
+            // Day 11 access hook: high contrast draws the cone wider (out to its soft edge)...
+            float radius = Mathf.Tan(halfAngleDegrees * Mathf.Deg2Rad) * length * AccessSettings.ConeWidthScale;
             transform.SetPositionAndRotation(apex, Quaternion.LookRotation(axis.normalized, Vector3.up));
             transform.localScale = new Vector3(radius, radius, length);
             Color calm = eyeContact ? new Color(0.4f, 0.7f, 1f, 0.10f) : new Color(1f, 1f, 1f, 0.08f);
-            material.color = Color.Lerp(calm, new Color(1f, 0.15f, 0.1f, 0.28f), secretCoverage);
+            // ...and brighter and more opaque.
+            material.color = AccessSettings.ConeColor(Color.Lerp(calm, new Color(1f, 0.15f, 0.1f, 0.28f), secretCoverage));
         }
 
         /// <summary>Apex at the origin, base circle of radius 1 at z = 1. Sides only.</summary>
