@@ -13,6 +13,7 @@ The rules allow simulator footage for the video ("a Meta VR device, via XR Simul
 1. Unity Hub → **Installs → Locate** → `D:\Unity\6000.0.66f2\Editor\Unity.exe` (from Nov 10 all installs live on D:; older setups used `C:\Unity`), then **Projects → Add** → this folder.
 2. Open the project. Menu **Window → Meta → Meta XR Simulator → Activate**.
 3. Open `Assets/Misdirection/Scenes/Show.unity` and press **Play**. In the simulator window, pick a synthetic room with a table and switch the hands to webcam tracking.
+4. To see what a narrower headset sees: in the simulator, **Inputs → Device info → Device → Meta VR Glasses** (about 70° × 66°). Or tick **Simulate Device Field of View** on the Camera Rig's OVRManager, which masks Play mode to the glasses' view ([Day 12](days/day-12.md)).
 
 ## What each gate becomes
 
@@ -22,7 +23,7 @@ The rules allow simulator footage for the video ("a Meta VR device, via XR Simul
 | Day 2 ditch 19/20 | Real hand tracking | Webcam hands in the simulator: tests our grip rules and timing, not Quest cameras | Feel on device unknown |
 | Day 4 fun gate | Outsiders in the headset | Outsiders play the simulator on the PC monitor (mouse-look head, webcam hands). Same questions: do they find "where I look, they look", and ask to go again? | Weaker signal than in VR |
 | Day 5 three tables | Three real tables | Three synthetic rooms with tables | Real scans are messier |
-| Day 12 performance (72 fps on 3S) | Measure on device | Keep greybox light; check draw calls and CPU in the Unity profiler | No device frame-rate number for the Devpost text |
+| Day 12 performance (72 fps on 3S) | Measure on device | Keep greybox light; check draw calls and CPU in the Unity profiler; compare the smoke report's draw-cost numbers; development builds log fps every 5 s for the day a headset turns up ([Day 12](days/day-12.md)) | No device frame-rate number for the Devpost text |
 | Day 13 unfamiliar rooms | 3+ homes | Every synthetic room the simulator offers, plus "no room scan" | Same as Day 5 |
 | Day 15 judge install | Install via Invite URL on a headset | Upload to the Competition channel and check the Dashboard accepts it; can't play it | **Highest risk:** a device-only crash would fail Stage One |
 | Video | Headset capture | Simulator capture + webcam of the real hands for the split screen | None (rules allow it) |
@@ -36,5 +37,5 @@ Even one hour on any Quest 3 or 3S (a friend, a college lab, a VR café) before 
 - `tools/unity_compile_check.py`: every script against the real Unity + Meta packages.
 - `python -m unittest discover -s tools/tests -t .`: all the game rules (C#) and analysis tools.
 - `tools/unity_batch.sh bootstrap | build`: project setup and a debug APK, headless.
-- `tools/sim_smoke.sh`: plays Show.unity in the simulator and checks for no errors, table set (room scan, else placed in front of the head), crowd spawned, a trick running. Writes `Builds/Smoke/report.json` and a screenshot. First runs (Nov 6) passed in two different simulator rooms; the scanned tables and walls were read, and table anchors save and restore.
+- `tools/sim_smoke.sh`: plays Show.unity in the simulator and checks for no errors, table set (room scan, else placed in front of the head), crowd spawned, a trick running. Writes `Builds/Smoke/report.json` and a screenshot. From Day 12 the report also has draw-cost numbers (`batches`, `draw_calls`, `set_pass_calls`, `triangles`, `vertices`, `materials_in_use`), `fov_check` (what a 70° × 66° view sees from the head pose) and `gaze_source`. First runs (Nov 6) passed in two different simulator rooms; the scanned tables and walls were read, and table anchors save and restore.
 - Note: the simulator's user stands about 1.1 m from its table, so the smoke test usually falls back to placing the table in front of the head.

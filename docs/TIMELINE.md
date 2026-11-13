@@ -150,6 +150,8 @@ Runbook: [days/day-07.md](days/day-07.md). Readable crowd (expressions, poses, a
 
 ## Day 12 · Fri Nov 13 · Glasses readiness + performance
 
+Runbook: [days/day-12.md](days/day-12.md). Code written and unit-tested on Nov 13; the simulator checks and any device measurement are pending.
+
 - **SYS**: OVRManager glasses-FoV simulation. Device Readiness Check. Simulator Look and Pinch. Runtime Optimizer pass.
 - **INT**: Eye-gaze path through `LookSource` in the Simulator.
 - **ART**: Texture and draw-call budget cleanup.
