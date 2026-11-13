@@ -5,8 +5,8 @@ namespace Misdirection.Perf
 {
     /// <summary>
     /// Development builds and the Editor only: every few seconds, logs the average and worst frame
-    /// time and the frame rate as "[Misdirection] Perf: ...", so a logcat capture (tools/pull_logs.sh
-    /// or adb logcat -s Unity) shows whether the build holds 72 fps. On the headset it adds the
+    /// time and the frame rate as "[Misdirection] Perf: ...", so a logcat capture
+    /// (adb logcat -s Unity) shows whether the build holds 72 fps. On the headset it adds the
     /// runtime's own numbers when it offers them (OVRPlugin perf metrics): app CPU and GPU time per
     /// frame, GPU load and frames the compositor dropped. Release builds switch it off in Awake, so
     /// it costs nothing there.

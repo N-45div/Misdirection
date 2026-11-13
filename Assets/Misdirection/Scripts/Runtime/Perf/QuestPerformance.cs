@@ -158,7 +158,7 @@ namespace Misdirection.Perf
         /// </summary>
         private static void OnSceneLoaded(Scene scene, LoadSceneMode mode)
         {
-            if (FindFirstObjectByType<QuestPerformance>(FindObjectsInactive.Include) != null ||
+            if (!Application.isPlaying || FindFirstObjectByType<QuestPerformance>(FindObjectsInactive.Include) != null ||
                 FindFirstObjectByType<OVRManager>(FindObjectsInactive.Include) == null)
             {
                 return;
