@@ -712,3 +712,184 @@ public static class TrickBookTests
         Assert.Equal("Cup", TrickBook.NameOf(1));
     }
 }
+
+public static class RegularTests
+{
+    private static RegularMemory Remembered(Archetype ear, int repeats, int date = ProgressSim.Day1)
+    {
+        return new RegularMemory { Date = date, ProducedFrom = (int)ear, EndTrick = ProgressSim.Vanish, Repeats = repeats };
+    }
+
+    /// <summary>A Regular across the table whose cone has settled on the hands.</summary>
+    private static SpectatorMind WatchingRegular(out CrowdModel crowd)
+    {
+        crowd = new CrowdModel();
+        SpectatorMind regular = crowd.Add(SpectatorProfile.For(Archetype.Regular), Stage.SkepticEyes);
+        Stage.Run(crowd, 0, 2.0, Stage.Hands);
+        return regular;
+    }
+
+    [Test]
+    public static void WithNothingRememberedHeIsAnOrdinarySpectator()
+    {
+        RegularAttitude a = RegularRule.AttitudeFor(new RegularMemory(), ProgressSim.Vanish);
+        Assert.False(a.Wary);
+        Assert.Near(1.0, a.SuspicionGainScale);
+        Assert.Near(0.0, a.SuspicionFloor);
+        Assert.Equal(RegularReaction.None, RegularRule.OnProduce(new RegularMemory(), Archetype.Kid));
+        Assert.False(RegularRule.AttitudeFor(null, ProgressSim.Vanish).Wary, "no memory at all");
+        Assert.False(RegularRule.AttitudeFor(Remembered(Archetype.Kid, 0), ProgressSim.Vanish).Wary, "seen once: not wary yet");
+    }
+
+    [Test]
+    public static void RepeatingTheSignatureMakesHimWaryAndVaryingRelaxesHim()
+    {
+        ShowAct[] acts = ProgressSim.ClassicActs();
+        RegularMemory memory = new RegularMemory();
+
+        RegularRule.Remember(memory, ProgressSim.CleanShow(acts, Archetype.Kid), ProgressSim.Day1);
+        Assert.True(memory.HasSignature);
+        Assert.Equal((int)Archetype.Kid, memory.ProducedFrom);
+        Assert.Equal(ProgressSim.Vanish, memory.EndTrick, "the show ends on the vanish");
+        Assert.Equal(0, memory.Repeats, "seen once");
+
+        // Day 2: the same ear again.
+        Assert.Equal(RegularReaction.SameAgain, RegularRule.OnProduce(memory, Archetype.Kid));
+        RegularRule.Remember(memory, ProgressSim.CleanShow(acts, Archetype.Kid), ProgressSim.Day2);
+        Assert.Equal(1, memory.Repeats);
+        Assert.Equal(ProgressSim.Day2, memory.Date);
+        RegularAttitude wary = RegularRule.AttitudeFor(memory, ProgressSim.Vanish);
+        Assert.True(wary.Wary, "wary after a repeat");
+        Assert.True(wary.SuspicionGainScale > 1.2f, "suspects faster: x" + wary.SuspicionGainScale);
+        Assert.True(wary.SuspicionFloor >= new AttentionSettings().CuriousAt, "starts Curious");
+
+        // Day 3: the same again; warier still.
+        RegularRule.Remember(memory, ProgressSim.CleanShow(acts, Archetype.Kid), ProgressSim.Day3);
+        Assert.Equal(2, memory.Repeats);
+        Assert.True(RegularRule.AttitudeFor(memory, ProgressSim.Vanish).SuspicionGainScale > wary.SuspicionGainScale, "more with every repeat");
+
+        // Then a different ear: he relaxes.
+        Assert.Equal(RegularReaction.SomethingNew, RegularRule.OnProduce(memory, Archetype.Skeptic));
+        RegularRule.Remember(memory, ProgressSim.CleanShow(acts, Archetype.Skeptic), 20261114);
+        Assert.Equal(0, memory.Repeats, "a new signature starts over");
+        Assert.Equal((int)Archetype.Skeptic, memory.ProducedFrom);
+        Assert.False(RegularRule.AttitudeFor(memory, ProgressSim.Vanish).Wary, "relaxed again");
+    }
+
+    [Test]
+    public static void WarinessIsCappedAndOnlyForTheTrickHeKeepsSeeing()
+    {
+        RegularSettings settings = new RegularSettings();
+        float atCap = RegularRule.AttitudeFor(Remembered(Archetype.Kid, settings.MaxRepeats), ProgressSim.Vanish, settings).SuspicionGainScale;
+        float beyond = RegularRule.AttitudeFor(Remembered(Archetype.Kid, 50), ProgressSim.Vanish, settings).SuspicionGainScale;
+        Assert.Near(atCap, beyond, 1e-5, "capped");
+        Assert.Near(1.0 + settings.GainPerRepeat * settings.MaxRepeats, atCap, 1e-5);
+        Assert.False(RegularRule.AttitudeFor(Remembered(Archetype.Kid, 3), ProgressSim.Cup, settings).Wary, "the cup is not the method he remembers");
+    }
+
+    [Test]
+    public static void AShowWithoutAProductionLeavesHisMemoryAlone()
+    {
+        ShowAct[] acts = ProgressSim.ClassicActs();
+        RegularMemory memory = Remembered(Archetype.Kid, 1);
+        ShowRecord walkedOff = new ShowRecord(acts);
+        walkedOff.AddBust(0, 0);
+        walkedOff.AddBust(0, 0);
+        walkedOff.AddBust(0, 0);
+        RegularRule.Remember(memory, walkedOff, ProgressSim.Day2);
+        Assert.Equal(1, memory.Repeats);
+        Assert.Equal(ProgressSim.Day1, memory.Date);
+        Assert.Equal((int)Archetype.Kid, memory.ProducedFrom);
+
+        // The same ear but the show ended on the other trick (walked off in the cup act): a different signature.
+        ShowRecord endedOnCup = new ShowRecord(acts);
+        ProgressSim.CleanAct(endedOnCup, acts, 0, Archetype.Kid);
+        endedOnCup.AddBust(1, 1);
+        RegularRule.Remember(memory, endedOnCup, ProgressSim.Day2);
+        Assert.Equal(0, memory.Repeats, "different ending");
+        Assert.Equal(ProgressSim.Cup, memory.EndTrick);
+    }
+
+    [Test]
+    public static void HeSaysYesterdayOnlyWhenItWasYesterday()
+    {
+        RegularMemory memory = Remembered(Archetype.Kid, 0, ProgressSim.Day1);
+        Assert.Equal("Same as yesterday!", RegularRule.Line(RegularReaction.SameAgain, memory, ProgressSim.Day2));
+        Assert.Equal("Same as last time!", RegularRule.Line(RegularReaction.SameAgain, memory, ProgressSim.Day3));
+        Assert.Equal("Same as last time!", RegularRule.Line(RegularReaction.SameAgain, memory, ProgressSim.Day1), "earlier today");
+        Assert.Equal("That's new!", RegularRule.Line(RegularReaction.SomethingNew, memory, ProgressSim.Day2));
+        Assert.Equal("", RegularRule.Line(RegularReaction.None, memory, ProgressSim.Day2));
+    }
+
+    [Test]
+    public static void AWaryRegularSuspectsFasterAndStaysCurious()
+    {
+        CrowdModel calmCrowd;
+        CrowdModel waryCrowd;
+        SpectatorMind calm = WatchingRegular(out calmCrowd);
+        SpectatorMind wary = WatchingRegular(out waryCrowd);
+        RegularAttitude attitude = RegularRule.AttitudeFor(Remembered(Archetype.Kid, 2), ProgressSim.Vanish);
+        RegularRule.Apply(wary, attitude);
+        Assert.Equal(SuspicionLevel.Curious, wary.Level, "walks in Curious");
+        Assert.Equal(SuspicionLevel.Calm, calm.Level);
+        Assert.Near(attitude.SuspicionGainScale, wary.SuspicionGainScale, 1e-5);
+
+        // Both see the same sloppy move at the hands.
+        float calmBefore = calm.Suspicion;
+        float waryBefore = wary.Suspicion;
+        Assert.True(calm.Witness(Stage.Hands, 0.3f) > 0.9f, "he was watching the hands");
+        wary.Witness(Stage.Hands, 0.3f);
+        float calmGain = calm.Suspicion - calmBefore;
+        float waryGain = wary.Suspicion - waryBefore;
+        Assert.Near(calmGain * attitude.SuspicionGainScale, waryGain, 1e-4, "gains suspicion faster");
+
+        // A minute of nothing: the calm one forgets, the wary one stays Curious. A new trick's reset keeps the floor too.
+        Stage.Run(calmCrowd, 2.0, 60, Stage.Mat);
+        Stage.Run(waryCrowd, 2.0, 60, Stage.Mat);
+        Assert.Near(0.0, calm.Suspicion, 1e-4, "suspicion decays");
+        Assert.Near(attitude.SuspicionFloor, wary.Suspicion, 1e-4, "never below the floor");
+        wary.ResetSuspicion();
+        Assert.Equal(SuspicionLevel.Curious, wary.Level, "still Curious after a reset");
+    }
+
+    [Test]
+    public static void HisReactionOnTheSpot()
+    {
+        CrowdModel crowd;
+        SpectatorMind regular = WatchingRegular(out crowd);
+        RegularSettings settings = new RegularSettings { RepeatBump = 0.4f };
+        RegularRule.Apply(regular, RegularRule.AttitudeFor(Remembered(Archetype.Kid, 1), ProgressSim.Vanish, settings));
+        float before = regular.Suspicion;
+
+        RegularRule.React(regular, RegularReaction.SameAgain, settings);
+        Assert.Near(before + settings.RepeatBump, regular.Suspicion, 1e-4, "the same ear again raises suspicion");
+        Assert.Equal(SuspicionLevel.Suspicious, regular.Level);
+
+        RegularRule.React(regular, RegularReaction.SomethingNew, settings);
+        Assert.Near(0.0, regular.Suspicion, 1e-5, "something new clears it");
+        Assert.Near(1.0, regular.SuspicionGainScale, 1e-5, "and his wariness");
+        Assert.Near(0.0, regular.SuspicionFloor, 1e-5);
+
+        RegularRule.React(regular, RegularReaction.None, settings);
+        Assert.Near(0.0, regular.Suspicion, 1e-5, "nothing to react to");
+        RegularRule.React(null, RegularReaction.SameAgain, settings);
+        RegularRule.Apply(null, new RegularAttitude());
+    }
+
+    [Test]
+    public static void OtherSpectatorsAreUntouchedByDefault()
+    {
+        // The hook defaults to "normal": an unprimed mind behaves exactly as before Day 10.
+        var crowd = Stage.ThreeSpectators();
+        Stage.Run(crowd, 0, 1.0, Stage.Hands);
+        SpectatorMind skeptic = crowd.Spectators[2];
+        Assert.Near(1.0, skeptic.SuspicionGainScale);
+        Assert.Near(0.0, skeptic.SuspicionFloor);
+        skeptic.AddSuspicion(0.5f);
+        skeptic.ResetSuspicion();
+        Assert.Near(0.0, skeptic.Suspicion, 1e-6);
+        skeptic.SetWariness(-3f, 99f);
+        Assert.Near(0.0, skeptic.SuspicionGainScale, 1e-6, "scale can't go negative");
+        Assert.Near(new AttentionSettings().MaxSuspicion, skeptic.SuspicionFloor, 1e-6, "floor is capped at the maximum");
+    }
+}
