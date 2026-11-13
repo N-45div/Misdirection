@@ -10,7 +10,7 @@ Copy each field into the [Devpost form](https://start-developer-competition-26.d
 | Tagline (≤140 characters) | Street magic at your real table: where you look, they look. Steer a crowd with your gaze while your other hand does the trick. |
 | Track | Gaming |
 | Division | New Experience |
-| Release channel link | **TODO:** Invite URL of the "Competition" channel |
+| Release channel link | https://www.meta.com/s/8hKddZFv8 |
 | Video | **TODO:** public YouTube link (under 3:00) |
 | Target launch date | **TODO:** team decision (suggested: Meta Horizon Store, Q2 2027) |
 | Team | **TODO:** names, emails and roles of each member |
