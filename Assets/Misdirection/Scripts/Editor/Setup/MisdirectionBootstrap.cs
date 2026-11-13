@@ -203,11 +203,15 @@ namespace Misdirection.EditorTools
                     // replaces the alternating sequence. Added to older Show scenes too.
                     ShowSetup.EnsureCupTrickAndSequence(false);
                     ShowSetup.EnsureShowDirector(false);
+                    // Day 11: the accessibility layer (Access Tray, one-handed play, captions, voice).
+                    AccessSetup.EnsureAccess(false);
                 }
                 yield return OVRProjectSetup.FixAllAsync(BuildTargetGroup.Android);
                 yield return null;
                 yield return OVRProjectSetup.FixAllAsync(BuildTargetGroup.Android);
                 RequestScenePermission();
+                // Day 11: Meta's Fix All can rewrite the manifest; Unity must never ask for permissions at startup.
+                AccessSetup.EnsureNoStartupPermissionPrompt();
                 if (!EditorSceneManager.SaveScene(scene))
                 {
                     throw new IOException("Could not save " + path);
