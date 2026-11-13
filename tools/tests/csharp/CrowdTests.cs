@@ -78,6 +78,134 @@ public static class GazeTests
     }
 }
 
+/// <summary>
+/// Day 12: the looked-at face can come from an outside gaze interactor (Meta's Interaction SDK).
+/// These tests stand in for it with the simplest honest hit test: the face nearest the look ray
+/// within the acquire angle, with no memory.
+/// </summary>
+public static class ReportedHoverTests
+{
+    private static readonly Vector3[] Faces = { Stage.TouristEyes, Stage.KidEyes, Stage.SkepticEyes };
+
+    /// <summary>What a cone-cast along the look ray reports: the nearest face within <paramref name="coneDegrees"/>, or -1.</summary>
+    private static int ConeCast(Vector3 direction, float coneDegrees)
+    {
+        int best = -1;
+        float bestAngle = float.MaxValue;
+        for (int i = 0; i < Faces.Length; i++)
+        {
+            float angle = CrowdModel.AngleDegrees(Vector3.Normalize(direction), Vector3.Normalize(Faces[i] - Stage.Eyes));
+            if (angle <= coneDegrees && angle < bestAngle)
+            {
+                best = i;
+                bestAngle = angle;
+            }
+        }
+        return best;
+    }
+
+    private static void Step(CrowdModel crowd, ref double t, Vector3 direction, bool report)
+    {
+        t += Stage.Dt;
+        if (report)
+        {
+            crowd.ReportHover(ConeCast(direction, crowd.Settings.FaceAngleDegrees));
+        }
+        crowd.Update(t, Stage.Dt, Stage.Eyes, direction, Stage.Hands, Stage.Mat, Stage.Table);
+    }
+
+    [Test]
+    public static void AReportedFaceIsTheOneLookedAt()
+    {
+        var crowd = Stage.ThreeSpectators();
+        // The look points at the mat, but the interactor says the Kid: the interactor decides.
+        crowd.ReportHover(1);
+        crowd.Update(Stage.Dt, Stage.Dt, Stage.Eyes, Vector3.Normalize(Stage.Mat - Stage.Eyes), Stage.Hands, Stage.Mat, Stage.Table);
+        Assert.Equal(1, crowd.LookedAt, "the reported spectator");
+        Assert.True(crowd.HoverWasReported, "came from the report");
+        Assert.True(Stage.Dist(crowd.GazePoint, Stage.KidEyes) < 1e-4f, "the gaze point is on her face");
+    }
+
+    [Test]
+    public static void AFrameWithoutAReportUsesTheModelsOwnTest()
+    {
+        var crowd = Stage.ThreeSpectators();
+        crowd.ReportHover(0);
+        crowd.Update(Stage.Dt, Stage.Dt, Stage.Eyes, Vector3.Normalize(Stage.SkepticEyes - Stage.Eyes), Stage.Hands, Stage.Mat, Stage.Table);
+        Assert.Equal(0, crowd.LookedAt, "reported");
+        // The interactor stops reporting (switched off, failed): next frame the model looks for itself.
+        crowd.Update(2 * Stage.Dt, Stage.Dt, Stage.Eyes, Vector3.Normalize(Stage.SkepticEyes - Stage.Eyes), Stage.Hands, Stage.Mat, Stage.Table);
+        Assert.Equal(2, crowd.LookedAt, "the model's own test finds the skeptic");
+        Assert.False(crowd.HoverWasReported, "not from a report");
+    }
+
+    [Test]
+    public static void AReportedFaceIsHeldUntilTheReleaseAngle()
+    {
+        var crowd = Stage.ThreeSpectators();
+        double t = 0;
+        Vector3 at = Vector3.Normalize(Stage.SkepticEyes - Stage.Eyes);
+        Step(crowd, ref t, at, true);
+        Assert.Equal(2, crowd.LookedAt, "on the skeptic");
+        // About 8 degrees off: outside the 6 degree cone (the interactor reports nobody), inside the 9 degree release.
+        Vector3 off = Vector3.Normalize(at + new Vector3(0f, 0.14f, 0f));
+        Assert.Equal(-1, ConeCast(off, crowd.Settings.FaceAngleDegrees), "the cone no longer hits");
+        Step(crowd, ref t, off, true);
+        Assert.Equal(2, crowd.LookedAt, "held");
+        // About 11 degrees off: released.
+        Vector3 far = Vector3.Normalize(at + new Vector3(0f, 0.2f, 0f));
+        Step(crowd, ref t, far, true);
+        Assert.Equal(-1, crowd.LookedAt, "released past 9 degrees");
+        // ...and 8 degrees off does not acquire a face that was not held.
+        Step(crowd, ref t, off, true);
+        Assert.Equal(-1, crowd.LookedAt, "not acquired at 8 degrees");
+    }
+
+    [Test]
+    public static void AReportThatMakesNoSenseIsIgnored()
+    {
+        var crowd = Stage.ThreeSpectators();
+        crowd.ReportHover(7);
+        crowd.Update(Stage.Dt, Stage.Dt, Stage.Eyes, Vector3.Normalize(Stage.Mat - Stage.Eyes), Stage.Hands, Stage.Mat, Stage.Table);
+        Assert.Equal(-1, crowd.LookedAt, "no such spectator");
+    }
+
+    [Test]
+    public static void AConeCastPlusTheHoldRuleMatchesTheModelsOwnTestEverywhere()
+    {
+        // Sweep the look across the crowd, the mat and back along a wandering path; both ways of
+        // deciding who is looked at must agree on every frame.
+        var own = Stage.ThreeSpectators();
+        var reported = Stage.ThreeSpectators();
+        double tOwn = 0;
+        double tReported = 0;
+        int frames = 0;
+        int lookedAtSomeone = 0;
+        for (int i = 0; i < 4000; i++)
+        {
+            double a = i * 0.013;
+            // Yaw swings +-30 degrees, pitch between the mat and above the heads, at unrelated rates.
+            double yaw = 30.0 * Math.Sin(a) * Math.PI / 180.0;
+            double pitch = (-8.0 + 22.0 * Math.Sin(a * 1.618 + 0.4)) * Math.PI / 180.0;
+            Vector3 direction = new Vector3((float)(Math.Sin(yaw) * Math.Cos(pitch)), (float)Math.Sin(pitch), (float)(Math.Cos(yaw) * Math.Cos(pitch)));
+            Step(own, ref tOwn, direction, false);
+            Step(reported, ref tReported, direction, true);
+            Assert.Equal(own.LookedAt, reported.LookedAt, "frame " + i);
+            frames++;
+            if (own.LookedAt >= 0)
+            {
+                lookedAtSomeone++;
+            }
+        }
+        Assert.True(lookedAtSomeone > 200 && lookedAtSomeone < frames - 200, "the sweep both hits and misses faces: " + lookedAtSomeone + " of " + frames);
+        for (int i = 0; i < 3; i++)
+        {
+            Assert.Near(own.Spectators[i].Suspicion, reported.Spectators[i].Suspicion, 1e-6, "same crowd state for spectator " + i);
+            Assert.Equal(own.Spectators[i].EyeContact, reported.Spectators[i].EyeContact, "same eye contact for spectator " + i);
+        }
+    }
+}
+
 public static class AttentionTests
 {
     [Test]
