@@ -619,6 +619,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     parser.add_argument("--unity", required=True, help="Unity 'Editor' folder (contains Data/)")
     parser.add_argument("--project", default=REPO)
     parser.add_argument("--cache", default=DEFAULT_CACHE)
+    parser.add_argument("--build-dir", default=None,
+                        help="where compiled assemblies go (default <cache>/build); give each concurrent run its own")
     parser.add_argument("--context", choices=["editor", "player", "both"], default="both")
     parser.add_argument("--define", action="append", default=[], help="extra scripting define symbol")
     parser.add_argument("--show-third-party-errors", action="store_true")
@@ -648,7 +650,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             print("   ", os.path.relpath(path, args.project))
 
     contexts = ["editor", "player"] if args.context == "both" else [args.context]
-    compiler = Compiler(data, os.path.join(args.cache, "build"), unity_version, args.define, args.verbose)
+    compiler = Compiler(data, args.build_dir or os.path.join(args.cache, "build"), unity_version, args.define, args.verbose)
     failed_project = False
     for context in contexts:
         print(f"\n== {context} context ==")
