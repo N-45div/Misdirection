@@ -119,6 +119,72 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+--- !u!1 &30595041
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 30595044}
+  - component: {fileID: 30595043}
+  - component: {fileID: 30595042}
+  m_Layer: 0
+  m_Name: Misdirection Performance
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &30595042
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 30595041}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 86ea296475ad884565c261e859030ab8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  windowSeconds: 5
+  alsoInRelease: 0
+--- !u!114 &30595043
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 30595041}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 91e11ac3863393d9c73b4302c1d39ee5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  foveation: 3
+  dynamicFoveation: 1
+  cpuLevel: 2
+  gpuLevel: 2
+  displayHz: 72
+  applyInEditor: 0
+  reapplyAfterSeconds: 2
+--- !u!4 &30595044
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 30595041}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &89138438
 GameObject:
   m_ObjectHideFlags: 0
@@ -524,6 +590,7 @@ GameObject:
   m_Component:
   - component: {fileID: 530390303}
   - component: {fileID: 530390302}
+  - component: {fileID: 530390304}
   m_Layer: 0
   m_Name: Misdirection Crowd
   m_TagString: Untagged
@@ -590,6 +657,7 @@ MonoBehaviour:
     MaxHoldSpeed: 0.3
     CooldownSeconds: 1
   exposureRate: 0.15
+  useIsdkGaze: 1
   showCones: 1
   showGazeDot: 1
 --- !u!4 &530390303
@@ -607,6 +675,22 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &530390304
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 530390301}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dc70d62eb5360df12f23699c052c83f4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  crowd: {fileID: 530390302}
+  lookSource: {fileID: 866965046}
+  faceTargetRadius: 0.005
+  coneLength: 10
 --- !u!1 &708689257
 GameObject:
   m_ObjectHideFlags: 0
@@ -2714,3 +2798,4 @@ SceneRoots:
   - {fileID: 530390303}
   - {fileID: 1223529609}
   - {fileID: 1656838491}
+  - {fileID: 30595044}
