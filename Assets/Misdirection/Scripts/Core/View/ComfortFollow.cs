@@ -18,8 +18,9 @@ namespace Misdirection.Core.View
         /// </summary>
         public double DelaySeconds = 0.6;
         /// <summary>
-        /// Once moved, the element stays put until the view drifts this many degrees further, so a still
-        /// head means a still element.
+        /// Leeway in degrees, both ways. The home may sit this far outside the zone before the element
+        /// moves at all (no fidgeting over a degree or two), and once moved the element stays put until
+        /// the view drifts this much further, so a still head means a still element.
         /// </summary>
         public float SlackDegrees = 4f;
         /// <summary>How fast the element eases to where it should be (1/s). 5 settles in about half a second.</summary>
@@ -34,10 +35,11 @@ namespace Misdirection.Core.View
     /// <summary>
     /// Keeps one piece of essential UI where it can be read on a narrow field of view (Day 12). The
     /// element has a home (say, a spot above the table). While the home is inside the comfortable zone
-    /// around the view direction, it sits at home. When the player looks away for longer than a glance,
-    /// it eases to the nearest point inside the zone and then stays there, fixed in the room, until the
-    /// view moves on again; when the home is comfortable again it eases back. It never jumps and never
-    /// chases small head movements. While it is at home it is fixed to its home exactly, so on a wide
+    /// around the view direction (or within a few degrees of it), it sits at home. When the player
+    /// looks away for longer than a glance, it eases to the nearest point inside the zone and then
+    /// stays there, fixed in the room, until the view moves on again; when the home is comfortable
+    /// again it eases back. It never jumps and never chases small head movements.
+    /// While it is at home it is fixed to its home exactly, so on a wide
     /// field of view, looking at the table, nothing differs from a plain fixed label.
     /// Pure logic: feed it the eye, the view direction and the frame time.
     /// </summary>
@@ -101,15 +103,18 @@ namespace Misdirection.Core.View
                 Position = home;
                 return Position;
             }
+            FieldOfView leeway = comfort.Grown(settings.SlackDegrees);
             bool comfortable = ViewCone.Contains(eye, forward, comfort, home);
+            // "Near enough": inside the zone or within the slack around it.
+            bool nearEnough = comfortable || ViewCone.Contains(eye, forward, leeway, home);
             if (!started)
             {
                 // First frame on show: appear where it can be read, no glide.
                 started = true;
-                attached = comfortable;
-                Displaced = !comfortable;
+                attached = nearEnough;
+                Displaced = !nearEnough;
                 outFor = 0;
-                goal = comfortable ? home : ViewCone.Nearest(eye, forward, comfort, home);
+                goal = nearEnough ? home : ViewCone.Nearest(eye, forward, comfort, home);
                 Position = goal;
                 return Position;
             }
@@ -122,16 +127,24 @@ namespace Misdirection.Core.View
             }
             else if (!Displaced)
             {
-                // Looking away, but perhaps only for a moment: stay home until the delay has passed.
-                outFor += Math.Max(0f, dt);
                 goal = home;
-                if (outFor >= settings.DelaySeconds)
+                if (nearEnough)
                 {
-                    Displaced = true;
-                    goal = ViewCone.Nearest(eye, forward, comfort, home);
+                    // A little outside the zone: leave it be.
+                    outFor = 0;
+                }
+                else
+                {
+                    // Looking away, but perhaps only for a moment: stay home until the delay has passed.
+                    outFor += Math.Max(0f, dt);
+                    if (outFor >= settings.DelaySeconds)
+                    {
+                        Displaced = true;
+                        goal = ViewCone.Nearest(eye, forward, comfort, home);
+                    }
                 }
             }
-            else if (!ViewCone.Contains(eye, forward, comfort.Grown(settings.SlackDegrees), goal))
+            else if (!ViewCone.Contains(eye, forward, leeway, goal))
             {
                 // Already moved, and the view has gone on past the slack: move again.
                 goal = ViewCone.Nearest(eye, forward, comfort, home);

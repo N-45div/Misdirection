@@ -203,6 +203,38 @@ public static class ComfortFollowTests
     }
 
     [Test]
+    public static void ALittleOutsideTheZoneIsLeftAlone()
+    {
+        ComfortFollow follow = new ComfortFollow();
+        // Looking down at the coin (40 degrees down), the prompt is 22.5 degrees above the view centre:
+        // 2.5 degrees past the zone's top, inside the 4 degree leeway. Not worth moving for.
+        Vector3 p = Run(follow, Look(0f, -40f), Hud, 3.0);
+        Assert.Near(0, Vector3.Distance(p, Hud), 1e-6, "home");
+        Assert.False(follow.Displaced, "not displaced");
+        // Five degrees further down it is clearly outside: now it follows, all the way into the zone.
+        Vector3 lower = Look(0f, -45f);
+        p = Run(follow, lower, Hud, 3.0);
+        Assert.True(follow.Displaced, "displaced");
+        Assert.True(ViewCone.Contains(Eye, lower, FieldOfView.Comfort.Grown(0.5f), p), "inside the zone itself");
+    }
+
+    [Test]
+    public static void OnceMovedItComesHomeOnlyWhenHomeIsComfortable()
+    {
+        ComfortFollow follow = new ComfortFollow();
+        Run(follow, Look(0f, -17.5f), Hud, 0.5);
+        Run(follow, Look(0f, -50f), Hud, 3.0);
+        Assert.True(follow.Displaced, "displaced");
+        // Back up to 40 degrees down: home is within the leeway but not comfortable yet. It stays away.
+        Run(follow, Look(0f, -40f), Hud, 3.0);
+        Assert.True(follow.Displaced, "still displaced in the leeway");
+        // Properly comfortable: home.
+        Vector3 p = Run(follow, Look(0f, -30f), Hud, 3.0);
+        Assert.False(follow.Displaced, "home again");
+        Assert.Near(0, Vector3.Distance(p, Hud), 1e-3, "at home");
+    }
+
+    [Test]
     public static void AGlanceAwayDoesNotMoveIt()
     {
         ComfortFollow follow = new ComfortFollow();
