@@ -34,11 +34,11 @@ A headset knows where you're looking. So we made that the core verb: in Misdirec
 
 ### How we built it
 
-Unity 6 with Meta XR SDK v207: hand tracking, passthrough, scene understanding (MRUK) and spatial anchors. Head gaze drives the crowd on Quest 3 and 3S, eye gaze where the device has it. We wrote our own hand-tracking rules for magic: a sticky pinch with the coin parented to the wrist, no release decisions while tracking confidence is low, and hands that freeze, fade and blend back when tracking drops. The show pauses when both hands leave view.
+Unity 6 with Meta XR SDK v207: hand tracking, passthrough, scene understanding (MRUK) and spatial anchors. **Gaze runs through the Interaction SDK v207:** every spectator's face is a `GazeInteractable`, hovered by a `GazeInteractor` that follows your head on Quest 3 and 3S (and your eyes where a device has eye tracking). We wrote our own hand-tracking rules for magic: a sticky pinch with the coin parented to the wrist, no release decisions while tracking confidence is low, and hands that freeze, fade and blend back when tracking drops. The show pauses when both hands leave view.
 
-The game rules (attention, suspicion, tricks, the show, the tutorial, progress and accessibility) are engine-free C#, with **197 unit tests**. We built it without a headset: Meta XR Simulator 207 with webcam hand tracking and synthetic rooms, plus an automated simulator smoke test on every change. The release build passed Meta's upload validation and security checks.
+**Built for Quest 3 and 3S, and for narrower views.** Everything is drawn with a handful of shared materials (46 draw calls in a full scene), with dynamic foveation and a 72 Hz request on the headset. The prompt, banner and captions ease back into a comfortable view when you look away, and we check that the essential UI fits a 70° × 66° glasses-sized view.
 
-**TODO (Day 12):** performance and FoV-aware layout, and the Interaction SDK gaze outcome.
+The game rules (attention, suspicion, tricks, the show, the tutorial, progress, accessibility and layout) are engine-free C#, with **225 unit tests**. We built it without a headset: Meta XR Simulator 207 with webcam hand tracking and synthetic rooms, plus an automated simulator smoke test after every change. Release builds pass Meta's upload validation and security checks.
 
 ### What's next
 
