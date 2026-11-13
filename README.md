@@ -14,7 +14,7 @@ Entry for the Meta Horizon Start Developer Competition 2026, Gaming track (Best 
 | Path | What it is |
 |---|---|
 | [docs/TIMELINE.md](docs/TIMELINE.md) | Day-by-day plan from Nov 1 to Nov 18, split by role, with gates, cut order and pivot rule |
-| [docs/days/](docs/days/) | Detailed runbook for each day as it starts. **Today's: [day-09.md](docs/days/day-09.md)** |
+| [docs/days/](docs/days/) | Detailed runbook for each day as it starts. **Latest: [day-12.md](docs/days/day-12.md)** (Days 10–11: [day-10.md](docs/days/day-10.md), [day-11.md](docs/days/day-11.md)). Submission: [SUBMISSION.md](docs/SUBMISSION.md) |
 | [docs/DESIGN.md](docs/DESIGN.md) | Game design and how each feature maps to the judging criteria |
 | [docs/OPEN_ITEMS.md](docs/OPEN_ITEMS.md) | Rules, eligibility and device questions to verify, with owners and due dates |
 | [docs/TRAILER.md](docs/TRAILER.md) | Video shot list (under 3:00) |
