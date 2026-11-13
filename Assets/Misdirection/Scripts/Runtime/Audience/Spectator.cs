@@ -39,6 +39,9 @@ namespace Misdirection.Audience
 
         public AttentionCone Cone { get { return cone; } }
 
+        /// <summary>The head (it turns with attention). Day 12: the ISDK gaze target sits on it.</summary>
+        public Transform Head { get { return head; } }
+
         /// <summary>Just behind the right ear: where a coin gets "found".</summary>
         public Vector3 EarPosition { get { return head != null ? head.position + head.right * 0.12f - head.forward * 0.02f : transform.position; } }
 

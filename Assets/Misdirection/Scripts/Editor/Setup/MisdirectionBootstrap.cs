@@ -215,6 +215,8 @@ namespace Misdirection.EditorTools
                 RequestScenePermission();
                 // Day 12: foveation, CPU/GPU levels and 72 Hz are asked for at runtime, by a component.
                 PerformanceSetup.EnsureScenePerformance(false);
+                // Day 12: spectator faces as ISDK gaze interactables (scenes with a crowd).
+                GazeSetup.EnsureIsdkGaze(false);
                 if (!EditorSceneManager.SaveScene(scene))
                 {
                     throw new IOException("Could not save " + path);

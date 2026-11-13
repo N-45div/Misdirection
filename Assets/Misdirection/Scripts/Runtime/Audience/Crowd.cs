@@ -42,6 +42,10 @@ namespace Misdirection.Audience
         [SerializeField] private FlourishSettings flourishSettings = new FlourishSettings();
         [Tooltip("Suspicion per second while the secret hand carries something inside a cone.")]
         [SerializeField] private float exposureRate = 0.15f;
+        [Tooltip("Day 12: find the looked-at spectator with Meta's Interaction SDK (spectator faces are ISDK gaze " +
+                 "interactables, hovered by an ISDK GazeInteractor along the look ray). Off, or if it fails: the " +
+                 "crowd model's own angle test, which behaves the same.")]
+        [SerializeField] private bool useIsdkGaze = true;
 
         [Header("Debug and tutorial")]
         [SerializeField] private bool showCones = true;
@@ -55,11 +59,37 @@ namespace Misdirection.Audience
         private Vector3 secretPoint;
         private bool hasSecret;
         private Transform gazeDot;
+        private IsdkSpectatorGaze isdkGaze;
         private readonly StringBuilder summaryBuilder = new StringBuilder(128);
         private string summaryText;
         private int summaryStamp;
 
         public CrowdModel Model { get { return model; } }
+
+        /// <summary>Where the looked-at spectator comes from right now: the ISDK gaze interactor or the crowd model's own test.</summary>
+        public string GazeSource
+        {
+            get
+            {
+                if (isdkGaze == null || !isdkGaze.isActiveAndEnabled)
+                {
+                    return "crowd model";
+                }
+                return isdkGaze.Working ? isdkGaze.Status : "crowd model (" + isdkGaze.Status + ")";
+            }
+        }
+
+        /// <summary>
+        /// A coin was just plucked from behind a spectator's ear (look + pinch). Passed to the ISDK gaze
+        /// interactor as a select of the face being looked at; it changes nothing in the game.
+        /// </summary>
+        public void Pluck()
+        {
+            if (isdkGaze != null && isdkGaze.isActiveAndEnabled)
+            {
+                isdkGaze.Pluck();
+            }
+        }
 
         /// <summary>How the last placement went, for HUDs ("open floor", "tightened near walls", ...).</summary>
         public string LayoutNote { get; private set; }
@@ -234,6 +264,18 @@ namespace Misdirection.Audience
                 dot.GetComponent<Renderer>().sharedMaterial = SharedMaterials.Lit(new Color(0.4f, 0.8f, 1f));
                 gazeDot = dot.transform;
                 dot.SetActive(false);
+            }
+            // Day 12: spectator faces as ISDK gaze interactables. Added here when the scene has none, so
+            // scenes saved before Day 12 get it too; everything works the same without it.
+            isdkGaze = GetComponent<IsdkSpectatorGaze>();
+            if (useIsdkGaze && isdkGaze == null)
+            {
+                isdkGaze = gameObject.AddComponent<IsdkSpectatorGaze>();
+            }
+            if (isdkGaze != null)
+            {
+                isdkGaze.Configure(this, lookSource);
+                isdkGaze.enabled = useIsdkGaze;
             }
         }
 

@@ -253,6 +253,9 @@ namespace Misdirection.EditorTools
             json.Append("  \"floor_y\": ").Append(room != null && room.HasFloor ? room.FloorY.ToString("F2", inv) : "null").Append(",\n");
             json.Append("  \"spectators\": ").Append(spectators).Append(",\n");
             json.Append("  \"crowd_layout\": \"").Append(Escape(crowd != null ? crowd.LayoutNote : "")).Append("\",\n");
+            // Day 12: who decides which spectator is looked at (the ISDK gaze interactor, or the crowd model as fallback).
+            json.Append("  \"gaze_source\": \"").Append(Escape(crowd != null ? crowd.GazeSource : "no crowd")).Append("\",\n");
+            json.Append("  \"looked_at\": ").Append(crowd != null && crowd.Model != null ? crowd.Model.LookedAt : -1).Append(",\n");
             json.Append("  \"active_trick\": \"").Append(activeTrick).Append("\",\n");
             json.Append("  \"show_stage\": \"").Append(stage).Append("\",\n");
             json.Append("  \"tutorial_step\": \"").Append(show != null && show.Tutorial != null ? show.Tutorial.Step.ToString() : "").Append("\",\n");

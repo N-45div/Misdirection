@@ -395,6 +395,8 @@ namespace Misdirection.Tricks
 
             if (r.Kind == "produce" && r.Spectator >= 0 && crowd != null && r.Spectator < crowd.Spectators.Count)
             {
+                // Day 12: look + pinch also registers as an ISDK select on that spectator's face.
+                crowd.Pluck();
                 Play(sparkle);
                 flying = true;
                 flightStart = now;
