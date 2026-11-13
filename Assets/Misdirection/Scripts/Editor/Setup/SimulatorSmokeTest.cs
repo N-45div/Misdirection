@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Misdirection.Audience;
 using Misdirection.Core.Table;
+using Misdirection.Core.View;
 using Misdirection.Perf;
 using Misdirection.Show;
 using Misdirection.Table;
@@ -274,12 +275,68 @@ namespace Misdirection.EditorTools
             json.Append("  \"shared_materials\": \"").Append(Escape(SharedMaterials.Describe())).Append("\",\n");
             json.Append("  \"perf_log\": \"").Append(Escape(PerfLogger.LastWindow ?? "no PerfLogger window yet")).Append("\",\n");
             json.Append("  \"headset_settings\": \"").Append(Escape(QuestPerformance.LastApplied ?? "no QuestPerformance in the scene")).Append("\",\n");
+            // Day 12: would the essentials be visible on the narrowest device, from where the head is now?
+            json.Append("  \"fov_check\": ").Append(FovCheck(table, crowd)).Append(",\n");
             json.Append("  \"notes\": [").Append(JoinQuoted(Notes)).Append("],\n");
             json.Append("  \"errors\": [").Append(JoinQuoted(Errors)).Append("]\n");
             json.Append("}\n");
             File.WriteAllText(Path.Combine(ReportDir, "report.json"), json.ToString());
             Log("report written: pass=" + pass + " table=" + (table != null ? table.Source.ToString() : "missing") +
                 " spectators=" + spectators + " trick=" + activeTrick + " show=" + stage + " errors=" + Errors.Count);
+        }
+
+        /// <summary>
+        /// Which key anchors fall inside a 70 x 66 degree view (Meta VR Glasses) from the current head pose:
+        /// the trick prompt, the show banner, the mat centre and each spectator's face, with where each
+        /// sits in the view (yaw right, pitch up, degrees). Information only: it doesn't fail the run,
+        /// because the simulated head may be looking anywhere.
+        /// </summary>
+        private static string FovCheck(TableCalibrator table, Crowd crowd)
+        {
+            Transform head = Camera.main != null ? Camera.main.transform : null;
+            if (head == null || table == null || !table.Calibrated)
+            {
+                return "null";
+            }
+            FieldOfView fov = FieldOfView.Glasses;
+            int inside = 0;
+            int total = 0;
+            StringBuilder sb = new StringBuilder();
+            sb.Append("{\n    \"fov\": \"").Append(fov.Horizontal.ToString("F0", CultureInfo.InvariantCulture)).Append("x")
+              .Append(fov.Vertical.ToString("F0", CultureInfo.InvariantCulture)).Append(" (Meta VR Glasses)\",\n");
+            sb.Append("    \"hud\": ").Append(FovEntry(head, fov, table.Frame.ToWorld(UiAnchors.TrickHud).ToUnity(), ref inside, ref total)).Append(",\n");
+            sb.Append("    \"banner\": ").Append(FovEntry(head, fov, table.Frame.ToWorld(UiAnchors.ShowBanner).ToUnity(), ref inside, ref total)).Append(",\n");
+            sb.Append("    \"mat_centre\": ").Append(FovEntry(head, fov, table.Frame.ToWorld(UiAnchors.MatCentre).ToUnity(), ref inside, ref total)).Append(",\n");
+            sb.Append("    \"spectators\": [");
+            if (crowd != null)
+            {
+                for (int i = 0; i < crowd.Spectators.Count; i++)
+                {
+                    string entry = FovEntry(head, fov, crowd.Spectators[i].EyesPosition, ref inside, ref total);
+                    sb.Append(i > 0 ? ", " : "").Append("{\"name\": \"").Append(Escape(crowd.NameOf(i))).Append("\", ").Append(entry.Substring(1));
+                }
+            }
+            sb.Append("],\n");
+            sb.Append("    \"inside\": ").Append(inside).Append(",\n");
+            sb.Append("    \"of\": ").Append(total).Append("\n  }");
+            return sb.ToString();
+        }
+
+        private static string FovEntry(Transform head, FieldOfView fov, Vector3 point, ref int inside, ref int total)
+        {
+            System.Numerics.Vector3 eye = head.position.ToNumerics();
+            System.Numerics.Vector3 forward = head.forward.ToNumerics();
+            System.Numerics.Vector3 up = head.up.ToNumerics();
+            bool seen = ViewCone.Contains(eye, forward, up, fov, point.ToNumerics());
+            float yaw, pitch;
+            ViewCone.Angles(eye, forward, up, point.ToNumerics(), out yaw, out pitch);
+            total++;
+            if (seen)
+            {
+                inside++;
+            }
+            CultureInfo inv = CultureInfo.InvariantCulture;
+            return "{\"inside\": " + (seen ? "true" : "false") + ", \"yaw\": " + yaw.ToString("F1", inv) + ", \"pitch\": " + pitch.ToString("F1", inv) + "}";
         }
 
         /// <summary>How many different materials the scene's active renderers use (fewer = fewer state changes).</summary>
