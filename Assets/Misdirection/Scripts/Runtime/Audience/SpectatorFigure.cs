@@ -199,7 +199,8 @@ namespace Misdirection.Audience
                 Destroy(c);
             }
             Renderer r = go.GetComponent<Renderer>();
-            r.material.color = color;
+            // Day 12: one shared material per colour (was a private material per part).
+            r.sharedMaterial = SharedMaterials.Lit(color);
             // No shadows on spectators: cheaper on Quest, and no shadow acne on the curved primitives.
             r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             r.receiveShadows = false;

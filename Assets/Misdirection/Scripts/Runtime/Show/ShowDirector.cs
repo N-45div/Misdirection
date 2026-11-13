@@ -61,6 +61,8 @@ namespace Misdirection.Show
 
         private TextMeshPro banner;
         private double bannerUntil;
+        private static readonly Color StarEarned = new Color(1f, 0.8f, 0.2f);
+        private static readonly Color StarUnearned = new Color(0.35f, 0.35f, 0.38f);
         private readonly List<Renderer> stars = new List<Renderer>();
         private AudioSource audioSource;
         private AudioClip fanfare, arrive, walkOffTone;
@@ -138,6 +140,7 @@ namespace Misdirection.Show
                     Destroy(c);
                 }
                 Renderer r = star.GetComponent<Renderer>();
+                r.sharedMaterial = SharedMaterials.Lit(StarUnearned);
                 r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
                 star.SetActive(false);
                 stars.Add(r);
@@ -534,7 +537,7 @@ namespace Misdirection.Show
         {
             for (int i = 0; i < stars.Count; i++)
             {
-                stars[i].material.color = i < earned ? new Color(1f, 0.8f, 0.2f) : new Color(0.35f, 0.35f, 0.38f);
+                stars[i].sharedMaterial = SharedMaterials.Lit(i < earned ? StarEarned : StarUnearned);
                 stars[i].gameObject.SetActive(true);
             }
         }

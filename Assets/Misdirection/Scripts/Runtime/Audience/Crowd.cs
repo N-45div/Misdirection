@@ -202,7 +202,7 @@ namespace Misdirection.Audience
                 {
                     Destroy(c);
                 }
-                dot.GetComponent<Renderer>().material.color = new Color(0.4f, 0.8f, 1f);
+                dot.GetComponent<Renderer>().sharedMaterial = SharedMaterials.Lit(new Color(0.4f, 0.8f, 1f));
                 gazeDot = dot.transform;
                 dot.SetActive(false);
             }

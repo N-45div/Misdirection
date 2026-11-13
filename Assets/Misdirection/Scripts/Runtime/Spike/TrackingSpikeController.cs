@@ -551,7 +551,8 @@ namespace Misdirection.Spike
                 return;
             }
             bool aimed = lookSource.AngleTo(marker.transform.position) <= aimToleranceDegrees;
-            markerRenderer.material.color = aimed ? new Color(0.3f, 0.9f, 0.4f) : new Color(1f, 0.55f, 0.1f);
+            // Day 12: two shared materials (the default primitive material doesn't draw in a URP player build).
+            markerRenderer.sharedMaterial = SharedMaterials.Lit(aimed ? new Color(0.3f, 0.9f, 0.4f) : new Color(1f, 0.55f, 0.1f));
         }
 
         // ---------------------------------------------------------------- setup
@@ -641,6 +642,7 @@ namespace Misdirection.Spike
                 Destroy(markerCollider);
             }
             markerRenderer = marker.GetComponent<Renderer>();
+            markerRenderer.sharedMaterial = SharedMaterials.Lit(new Color(1f, 0.55f, 0.1f));
             marker.SetActive(false);
 
             markerLabel = CreateText("Spike Marker Label", new Vector2(0.45f, 0.12f), 0.35f);

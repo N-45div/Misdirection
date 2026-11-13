@@ -114,8 +114,8 @@ namespace Misdirection.Show
 
         private void Awake()
         {
-            Material material = new Material(Shader.Find("Sprites/Default"));
-            material.color = ghost;
+            // Day 12: from the shared cache (transparent, one material for both hands and the ring).
+            Material material = SharedMaterials.Overlay(ghost);
             right = new GhostHand(transform, false, material);
             left = new GhostHand(transform, true, material);
             caption = WorldText.Create(transform, "Mentor Caption", new Vector2(0.5f, 0.08f), 0.35f);
@@ -128,7 +128,7 @@ namespace Misdirection.Show
             ring.loop = true;
             ring.positionCount = 32;
             ring.startWidth = ring.endWidth = 0.008f;
-            ring.material = material;
+            ring.sharedMaterial = material;
             ring.startColor = ring.endColor = ghost;
 
             audioSource = gameObject.AddComponent<AudioSource>();

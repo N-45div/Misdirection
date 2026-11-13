@@ -170,7 +170,8 @@ namespace Misdirection.Audience
                 Destroy(c);
             }
             Renderer r = go.GetComponent<Renderer>();
-            r.material.color = color;
+            // Day 12: one shared material per colour (was a private material per part).
+            r.sharedMaterial = SharedMaterials.Lit(color);
             // No shadows on spectators: cheaper on Quest, and no shadow acne on the curved primitives.
             r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             r.receiveShadows = false;
@@ -200,7 +201,8 @@ namespace Misdirection.Audience
         private static Mesh unitCone;
 
         private MeshRenderer meshRenderer;
-        private Material material;
+        private Color tint;
+        private bool hasTint;
 
         public bool Visible { get; set; }
 
@@ -209,8 +211,8 @@ namespace Misdirection.Audience
             MeshFilter filter = gameObject.AddComponent<MeshFilter>();
             filter.sharedMesh = UnitCone();
             meshRenderer = gameObject.AddComponent<MeshRenderer>();
-            material = new Material(Shader.Find("Sprites/Default"));
-            meshRenderer.sharedMaterial = material;
+            // Day 12: every cone shares one transparent material; its colour is a per-renderer tint.
+            meshRenderer.sharedMaterial = SharedMaterials.Overlay();
             meshRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             meshRenderer.receiveShadows = false;
         }
@@ -232,7 +234,13 @@ namespace Misdirection.Audience
             transform.SetPositionAndRotation(apex, Quaternion.LookRotation(axis.normalized, Vector3.up));
             transform.localScale = new Vector3(radius, radius, length);
             Color calm = eyeContact ? new Color(0.4f, 0.7f, 1f, 0.10f) : new Color(1f, 1f, 1f, 0.08f);
-            material.color = Color.Lerp(calm, new Color(1f, 0.15f, 0.1f, 0.28f), secretCoverage);
+            Color wanted = Color.Lerp(calm, new Color(1f, 0.15f, 0.1f, 0.28f), secretCoverage);
+            if (!hasTint || wanted != tint)
+            {
+                hasTint = true;
+                tint = wanted;
+                SharedMaterials.Tint(meshRenderer, wanted);
+            }
         }
 
         /// <summary>Apex at the origin, base circle of radius 1 at z = 1. Sides only.</summary>
