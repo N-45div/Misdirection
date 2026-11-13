@@ -260,6 +260,29 @@ namespace Misdirection.EditorTools
             return true;
         }
 
+        /// <summary>
+        /// Meta's "Simulate Device Field of View" for Android builds (OVRManager > Device Simulation) masks the
+        /// view to the glasses' field of view on the headset. Useful for a look, but the SDK's own tooltip says
+        /// such a build is marked experimental and cannot be submitted to the Store, so say so if it is on.
+        /// </summary>
+        public static void WarnIfDeviceFovSimulationShips()
+        {
+            foreach (UnityEngine.Object asset in AssetDatabase.LoadAllAssetsAtPath("Assets/Resources/OculusRuntimeSettings.asset"))
+            {
+                if (asset == null)
+                {
+                    continue;
+                }
+                SerializedProperty simulate = new SerializedObject(asset).FindProperty("fovSimulationEnabled");
+                if (simulate != null && simulate.boolValue)
+                {
+                    Debug.LogWarning("[Misdirection] Performance: 'Simulate Device Field of View' is ON for Android builds. Meta's SDK " +
+                                     "marks such an APK experimental and says it cannot be submitted to the Store. Untick it on the " +
+                                     "OVRManager (Device Simulation) before building the release.");
+                }
+            }
+        }
+
         private static bool SetInt(SerializedObject so, string name, int value)
         {
             SerializedProperty property = so.FindProperty(name);
@@ -348,6 +371,7 @@ namespace Misdirection.EditorTools
             if (report.summary.platform == BuildTarget.Android)
             {
                 PerformanceSetup.EnsureQuestRenderSettings();
+                PerformanceSetup.WarnIfDeviceFovSimulationShips();
             }
         }
     }

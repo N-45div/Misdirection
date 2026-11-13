@@ -25,9 +25,10 @@ namespace Misdirection
     /// <summary>
     /// FoV-aware placement for one piece of essential UI (Day 12): give it the element's home position
     /// each frame and draw the element where it says. At home nothing changes; when the player has
-    /// looked away for longer than a glance, the element eases into a 50 x 40 degree comfortable zone
-    /// around the head direction, which is inside the 70 x 66 degree view of Meta VR Glasses, and goes
-    /// home again when home is comfortable. Rules and tests: Misdirection.Core.View.ComfortFollow.
+    /// looked away for longer than a glance, the element eases into a comfortable zone around the head
+    /// direction (50 degrees wide, 20 up, 33 down: inside the 70 x 66 degree view of Meta VR Glasses,
+    /// which reaches 25 up and 41 down), and goes home again when home is comfortable.
+    /// Rules and tests: Misdirection.Core.View.ComfortFollow.
     /// </summary>
     public sealed class ComfortAnchor
     {

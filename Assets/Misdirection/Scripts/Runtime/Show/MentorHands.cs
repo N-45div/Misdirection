@@ -52,8 +52,9 @@ namespace Misdirection.Show
         private Vector3 lookWorld;
         private bool hasLook;
         // Day 12 (FoV-aware): the caption eases into view when the player looks away from the ghost hands.
-        // Its zone is 6 degrees larger than the prompt's and banner's, so it settles clear of them.
-        private readonly ComfortAnchor captionComfort = new ComfortAnchor(6f);
+        // Its zone is 4 degrees larger than the prompt's and banner's, so it settles clear of them
+        // (and still inside the glasses' view: 37 degrees down of 41).
+        private readonly ComfortAnchor captionComfort = new ComfortAnchor(4f);
 
         public MentorDemo Demo { get { return demo; } }
 

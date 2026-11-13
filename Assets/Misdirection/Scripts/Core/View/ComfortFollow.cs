@@ -6,10 +6,12 @@ namespace Misdirection.Core.View
     [Serializable]
     public sealed class ComfortSettings
     {
-        /// <summary>Width of the comfortable zone around the view direction (degrees). Glasses see 70.</summary>
+        /// <summary>Width of the comfortable zone, centred on the view direction (degrees). Glasses see 70.</summary>
         public float HorizontalDegrees = 50f;
-        /// <summary>Height of the comfortable zone around the view direction (degrees). Glasses see 66.</summary>
-        public float VerticalDegrees = 40f;
+        /// <summary>How far above the view direction the zone reaches (degrees). Glasses see 25 up.</summary>
+        public float UpDegrees = 20f;
+        /// <summary>How far below the view direction the zone reaches (degrees). Glasses see 41 down.</summary>
+        public float DownDegrees = 33f;
         /// <summary>
         /// The home position must be outside the zone this long before the element moves, so a glance
         /// away (a moment of eye contact, a look at the hands) doesn't drag the text around.
@@ -81,7 +83,8 @@ namespace Misdirection.Core.View
         /// </summary>
         public Vector3 Update(Vector3 eye, Vector3 forward, Vector3 home, float dt)
         {
-            FieldOfView comfort = new FieldOfView(settings.HorizontalDegrees, settings.VerticalDegrees).Grown(margin);
+            FieldOfView comfort = new FieldOfView(settings.HorizontalDegrees * 0.5f, settings.HorizontalDegrees * 0.5f,
+                                                  settings.UpDegrees, settings.DownDegrees).Grown(margin);
             if (started && Vector3.DistanceSquared(home, lastHome) > settings.JumpMetres * settings.JumpMetres)
             {
                 // The home is somewhere else altogether: start again there.

@@ -23,10 +23,32 @@ public static class ViewConeTests
         Assert.True(ViewCone.Contains(Eye, Vector3.UnitZ, comfort, At(0f, 0f, 1f)), "straight ahead");
         Assert.True(ViewCone.Contains(Eye, Vector3.UnitZ, comfort, At(24f, 0f, 1f)), "24 degrees right is inside 50 wide");
         Assert.False(ViewCone.Contains(Eye, Vector3.UnitZ, comfort, At(26f, 0f, 1f)), "26 degrees right is outside 50 wide");
-        Assert.True(ViewCone.Contains(Eye, Vector3.UnitZ, comfort, At(0f, -19f, 1f)), "19 degrees down is inside 40 tall");
-        Assert.False(ViewCone.Contains(Eye, Vector3.UnitZ, comfort, At(0f, 21f, 1f)), "21 degrees up is outside 40 tall");
+        Assert.True(ViewCone.Contains(Eye, Vector3.UnitZ, comfort, At(-24f, 0f, 1f)), "24 degrees left is inside");
+        Assert.True(ViewCone.Contains(Eye, Vector3.UnitZ, comfort, At(0f, -32f, 1f)), "32 degrees down is inside (33 down)");
+        Assert.False(ViewCone.Contains(Eye, Vector3.UnitZ, comfort, At(0f, -34f, 1f)), "34 degrees down is outside");
+        Assert.True(ViewCone.Contains(Eye, Vector3.UnitZ, comfort, At(0f, 19f, 1f)), "19 degrees up is inside (20 up)");
+        Assert.False(ViewCone.Contains(Eye, Vector3.UnitZ, comfort, At(0f, 21f, 1f)), "21 degrees up is outside");
         Assert.False(ViewCone.Contains(Eye, Vector3.UnitZ, comfort, Eye - Vector3.UnitZ), "behind the viewer");
         Assert.False(ViewCone.Contains(Eye, Vector3.Zero, comfort, At(0f, 0f, 1f)), "no view direction");
+    }
+
+    [Test]
+    public static void TheGlassesSeeSeventyBySixtySixAndFurtherDownThanUp()
+    {
+        FieldOfView glasses = FieldOfView.Glasses;
+        Assert.Near(70, glasses.Horizontal, 1e-4, "width");
+        Assert.Near(66, glasses.Vertical, 1e-4, "height");
+        Assert.True(ViewCone.Contains(Eye, Vector3.UnitZ, glasses, At(34f, 0f, 1f)), "34 right");
+        Assert.False(ViewCone.Contains(Eye, Vector3.UnitZ, glasses, At(36f, 0f, 1f)), "36 right");
+        Assert.True(ViewCone.Contains(Eye, Vector3.UnitZ, glasses, At(0f, 24f, 1f)), "24 up");
+        Assert.False(ViewCone.Contains(Eye, Vector3.UnitZ, glasses, At(0f, 26f, 1f)), "26 up");
+        Assert.True(ViewCone.Contains(Eye, Vector3.UnitZ, glasses, At(0f, -40f, 1f)), "40 down");
+        Assert.False(ViewCone.Contains(Eye, Vector3.UnitZ, glasses, At(0f, -42f, 1f)), "42 down");
+        // A plain width x height is centred.
+        FieldOfView centred = new FieldOfView(70f, 66f);
+        Assert.Near(33, centred.Up, 1e-4, "half up");
+        Assert.Near(33, centred.Down, 1e-4, "half down");
+        Assert.Near(35, centred.Left, 1e-4, "half left");
     }
 
     [Test]
@@ -38,6 +60,11 @@ public static class ViewConeTests
         Vector3 wide = At(45f, 0f, 1f);
         Assert.False(ViewCone.Contains(Eye, Vector3.UnitZ, FieldOfView.Glasses, wide), "outside the glasses");
         Assert.True(ViewCone.Contains(Eye, Vector3.UnitZ, new FieldOfView(110f, 96f), wide), "inside Quest 3");
+        // The whole comfort zone fits inside the glasses' view, with room for the text's own size.
+        FieldOfView comfort = FieldOfView.Comfort;
+        FieldOfView glasses = FieldOfView.Glasses;
+        Assert.True(comfort.Left + 8f <= glasses.Left && comfort.Right + 8f <= glasses.Right, "sides");
+        Assert.True(comfort.Up + 4f <= glasses.Up && comfort.Down + 7f <= glasses.Down, "top and bottom");
     }
 
     [Test]
@@ -66,10 +93,14 @@ public static class ViewConeTests
     [Test]
     public static void ATiltedHeadTiltsTheField()
     {
-        // 66 tall and 70 wide: a point 34 degrees up is outside, unless the head is rolled a quarter turn.
-        Vector3 p = At(0f, 34f, 1f);
+        // 38 degrees to the left is outside the glasses (35 to each side). With the head rolled a quarter
+        // turn so that its up points to the world's right, that same point is 38 degrees "down": inside (41).
+        Vector3 p = At(-38f, 0f, 1f);
         Assert.False(ViewCone.Contains(Eye, Vector3.UnitZ, Vector3.UnitY, FieldOfView.Glasses, p), "upright: outside");
-        Assert.True(ViewCone.Contains(Eye, Vector3.UnitZ, Vector3.UnitX, FieldOfView.Glasses, p), "rolled 90 degrees: inside");
+        Assert.True(ViewCone.Contains(Eye, Vector3.UnitZ, Vector3.UnitX, FieldOfView.Glasses, p), "rolled: inside");
+        float yaw, pitch;
+        ViewCone.Angles(Eye, Vector3.UnitZ, Vector3.UnitX, p, out yaw, out pitch);
+        Assert.Near(-38, pitch, 1e-2, "38 degrees down in the rolled view");
     }
 
     [Test]
@@ -97,8 +128,13 @@ public static class ViewConeTests
         Vector3 m = ViewCone.Nearest(Eye, Vector3.UnitZ, FieldOfView.Comfort, q);
         ViewCone.Angles(Eye, Vector3.UnitZ, Vector3.UnitY, m, out yaw, out pitch);
         Assert.Near(-25, yaw, 1e-2, "left edge");
-        Assert.Near(-20, pitch, 1e-2, "bottom edge");
+        Assert.Near(-33, pitch, 1e-2, "bottom edge");
         Assert.Near(1.2, Vector3.Distance(Eye, m), 1e-4, "same distance");
+
+        // Above: the top edge is nearer than the bottom one.
+        Vector3 above = ViewCone.Nearest(Eye, Vector3.UnitZ, FieldOfView.Comfort, At(0f, 50f, 1f));
+        ViewCone.Angles(Eye, Vector3.UnitZ, Vector3.UnitY, above, out yaw, out pitch);
+        Assert.Near(20, pitch, 1e-2, "top edge");
     }
 
     [Test]
@@ -122,7 +158,7 @@ public static class ViewConeTests
         Vector3 right = ViewCone.Nearest(Eye, Vector3.UnitZ, FieldOfView.Comfort, Eye + new Vector3(1f, 0f, 0f));
         Assert.True(right.X > Eye.X, "right edge");
         // Looking straight down still works (no usable "up").
-        Vector3 down = ViewCone.Nearest(Eye, -Vector3.UnitY, FieldOfView.Comfort, At(0f, 0f, 1f));
+        Vector3 down = ViewCone.Nearest(Eye, -Vector3.UnitY, FieldOfView.Comfort, At(60f, 0f, 1f));
         Assert.True(ViewCone.Contains(Eye, -Vector3.UnitY, FieldOfView.Comfort, down), "inside when looking down");
     }
 }
@@ -132,7 +168,7 @@ public static class ComfortFollowTests
     private const float Dt = 1f / 72f;
     private static readonly Vector3 Eye = new Vector3(0f, 1.2f, 0f);
 
-    /// <summary>The trick HUD seen from a seated player: about 0.96 m away, 17.5 degrees below eye level.</summary>
+    /// <summary>The trick prompt seen from a seated player: about 0.96 m away, 17.5 degrees below eye level.</summary>
     private static readonly Vector3 Hud = ViewConeTests.At(0f, -17.5f, 0.96f);
 
     private static Vector3 Look(float yaw, float pitch)
@@ -152,14 +188,17 @@ public static class ComfortFollowTests
     }
 
     [Test]
-    public static void ItStaysHomeWhileHomeIsComfortable()
+    public static void ItStaysHomeThroughTheWholeTrick()
     {
         ComfortFollow follow = new ComfortFollow();
-        // Looking at the mat (about 40 degrees down), then at the HUD, then level: the HUD is within 20 degrees each time.
+        // Looking at the mat (about 35 degrees down), level, and into the eyes of a tall spectator at
+        // the far side of the arc (13 degrees up, 15 to the side): the prompt never has to move.
         Vector3 p = Run(follow, Look(0f, -35f), Hud, 2.0);
         Assert.Near(0, Vector3.Distance(p, Hud), 1e-6, "home while looking at the mat");
         p = Run(follow, Look(10f, 0f), Hud, 2.0);
         Assert.Near(0, Vector3.Distance(p, Hud), 1e-6, "home while looking level");
+        p = Run(follow, Look(-15f, 13f), Hud, 3.0);
+        Assert.Near(0, Vector3.Distance(p, Hud), 1e-6, "home during eye contact");
         Assert.False(follow.Displaced, "not displaced");
     }
 
@@ -168,8 +207,8 @@ public static class ComfortFollowTests
     {
         ComfortFollow follow = new ComfortFollow();
         Run(follow, Look(0f, -17.5f), Hud, 0.5);
-        // Eye contact with a tall spectator (13 degrees up) for 0.4 s: shorter than the 0.6 s delay.
-        Vector3 p = Run(follow, Look(-15f, 13f), Hud, 0.4);
+        // A look well above the crowd for 0.4 s: shorter than the 0.6 s delay.
+        Vector3 p = Run(follow, Look(-15f, 40f), Hud, 0.4);
         Assert.Near(0, Vector3.Distance(p, Hud), 1e-6, "still home");
         p = Run(follow, Look(0f, -17.5f), Hud, 1.0);
         Assert.Near(0, Vector3.Distance(p, Hud), 1e-6, "home after looking back");
@@ -181,7 +220,7 @@ public static class ComfortFollowTests
     {
         ComfortFollow follow = new ComfortFollow();
         Run(follow, Look(0f, -17.5f), Hud, 0.5);
-        Vector3 away = Look(0f, 13f); // the HUD is now 30.5 degrees below the view centre
+        Vector3 away = Look(0f, 40f); // the prompt is now 57.5 degrees below the view centre
         Vector3 p = Run(follow, away, Hud, 3.0);
         Assert.True(follow.Displaced, "displaced");
         Assert.True(ViewCone.Contains(Eye, away, FieldOfView.Comfort.Grown(0.5f), p), "settled inside the comfort zone");
@@ -204,7 +243,7 @@ public static class ComfortFollowTests
             biggestStep = Math.Max(biggestStep, Vector3.Distance(p, last));
             last = p;
         }
-        // The whole move is about 0.9 m; eased at 5/s, no frame moves it more than a few centimetres.
+        // The whole move is under a metre; eased at 5/s, no frame moves it more than a few centimetres.
         Assert.True(biggestStep < 0.08f, "largest step " + biggestStep);
         Assert.True(biggestStep > 0f, "it did move");
     }
@@ -214,14 +253,15 @@ public static class ComfortFollowTests
     {
         ComfortFollow follow = new ComfortFollow();
         Run(follow, Look(0f, -17.5f), Hud, 0.5);
-        Run(follow, Look(0f, 13f), Hud, 4.0);
+        Run(follow, Look(0f, 40f), Hud, 4.0);
+        Assert.True(follow.Displaced, "displaced");
         Vector3 settled = follow.Position;
         // Head tremor of half a degree either way, for three seconds.
         float worst = 0f;
         for (int i = 0; i < 72 * 3; i++)
         {
             float wobble = 0.5f * (float)Math.Sin(i * 0.9);
-            Vector3 p = follow.Update(Eye, Look(wobble, 13f + 0.5f * (float)Math.Cos(i * 1.3)), Hud, Dt);
+            Vector3 p = follow.Update(Eye, Look(wobble, 40f + 0.5f * (float)Math.Cos(i * 1.3)), Hud, Dt);
             worst = Math.Max(worst, Vector3.Distance(p, settled));
         }
         Assert.True(worst < 1e-3f, "moved " + worst + " m under tremor");
@@ -254,6 +294,7 @@ public static class ComfortFollowTests
             follow.Update(Eye, forward, Hud, Dt);
         }
         Vector3 p = Run(follow, forward, Hud, 2.0);
+        Assert.True(follow.Displaced, "displaced by the turn");
         Assert.True(ViewCone.Contains(Eye, forward, FieldOfView.Comfort.Grown(4.5f), p), "within the zone plus its slack after the turn");
         Assert.True(ViewCone.Contains(Eye, forward, FieldOfView.Glasses, p), "inside the glasses' field of view");
     }
@@ -286,7 +327,7 @@ public static class ComfortFollowTests
             Assert.Near(0, Vector3.Distance(p, home), 1e-6, "exactly at home");
         }
         // Also during the delay after looking away: still exactly at home.
-        Vector3 q = follow.Update(Eye, Look(0f, 40f), home, Dt);
+        Vector3 q = follow.Update(Eye, Look(0f, 50f), home, Dt);
         Assert.Near(0, Vector3.Distance(q, home), 1e-6, "at home during the delay");
     }
 
@@ -294,12 +335,12 @@ public static class ComfortFollowTests
     public static void AHomeThatJumpsIsANewPlaceNotASlide()
     {
         ComfortFollow follow = new ComfortFollow();
-        Vector3 forward = Look(0f, 13f);
+        Vector3 forward = Look(0f, 40f);
         Run(follow, Look(0f, -17.5f), Hud, 0.5);
         Run(follow, forward, Hud, 3.0);
         Assert.True(follow.Displaced, "displaced first");
-        // The caption moves to a spot 30 cm away that is comfortable: it is simply there.
-        Vector3 newHome = ViewConeTests.At(5f, 10f, 1.4f);
+        // The caption moves to a spot far away that is comfortable: it is simply there.
+        Vector3 newHome = ViewConeTests.At(5f, 30f, 1.4f);
         Vector3 p = follow.Update(Eye, forward, newHome, Dt);
         Assert.Near(0, Vector3.Distance(p, newHome), 1e-6, "appears at the new home");
         Assert.False(follow.Displaced, "not displaced");
@@ -316,7 +357,7 @@ public static class ComfortFollowTests
         ComfortFollow prompt = new ComfortFollow();
         ComfortFollow caption = new ComfortFollow(null, 6f);
         Vector3 captionHome = ViewConeTests.At(0f, -25f, 0.6f);
-        Vector3 away = Look(0f, 13f);
+        Vector3 away = Look(0f, 40f);
         Run(prompt, Look(0f, -17.5f), Hud, 0.5);
         Run(caption, Look(0f, -17.5f), captionHome, 0.5);
         Vector3 p = Run(prompt, away, Hud, 3.0);
@@ -324,8 +365,8 @@ public static class ComfortFollowTests
         float yaw, promptPitch, captionPitch;
         ViewCone.Angles(Eye, away, Vector3.UnitY, p, out yaw, out promptPitch);
         ViewCone.Angles(Eye, away, Vector3.UnitY, c, out yaw, out captionPitch);
-        Assert.Near(-20, promptPitch, 0.3, "prompt on the zone's lower edge");
-        Assert.Near(-26, captionPitch, 0.3, "caption six degrees lower");
+        Assert.Near(-33, promptPitch, 0.3, "prompt on the zone's lower edge");
+        Assert.Near(-39, captionPitch, 0.3, "caption six degrees lower");
         Assert.True(ViewCone.Contains(Eye, away, FieldOfView.Glasses, c), "still inside the glasses' field of view");
     }
 
@@ -334,10 +375,11 @@ public static class ComfortFollowTests
     {
         ComfortSettings wide = new ComfortSettings();
         wide.HorizontalDegrees = 100f;
-        wide.VerticalDegrees = 90f;
+        wide.UpDegrees = 60f;
+        wide.DownDegrees = 60f;
         ComfortFollow follow = new ComfortFollow(wide);
         Run(follow, Look(0f, -17.5f), Hud, 0.5);
-        Vector3 p = Run(follow, Look(0f, 13f), Hud, 3.0);
-        Assert.Near(0, Vector3.Distance(p, Hud), 1e-6, "30 degrees off is fine in a 90 degree tall zone");
+        Vector3 p = Run(follow, Look(0f, 40f), Hud, 3.0);
+        Assert.Near(0, Vector3.Distance(p, Hud), 1e-6, "57.5 degrees below is fine in a zone that reaches 60 down");
     }
 }

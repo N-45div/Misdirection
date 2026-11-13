@@ -289,7 +289,7 @@ namespace Misdirection.EditorTools
         }
 
         /// <summary>
-        /// Which key anchors fall inside a 70 x 66 degree view (Meta VR Glasses) from the current head pose:
+        /// Which key anchors fall inside a 70 x 66 degree view (Meta VR Glasses: 25 up, 41 down) from the current head pose:
         /// the trick prompt, the show banner, the mat centre and each spectator's face, with where each
         /// sits in the view (yaw right, pitch up, degrees). Information only: it doesn't fail the run,
         /// because the simulated head may be looking anywhere.
@@ -305,8 +305,10 @@ namespace Misdirection.EditorTools
             int inside = 0;
             int total = 0;
             StringBuilder sb = new StringBuilder();
-            sb.Append("{\n    \"fov\": \"").Append(fov.Horizontal.ToString("F0", CultureInfo.InvariantCulture)).Append("x")
-              .Append(fov.Vertical.ToString("F0", CultureInfo.InvariantCulture)).Append(" (Meta VR Glasses)\",\n");
+            CultureInfo inv = CultureInfo.InvariantCulture;
+            sb.Append("{\n    \"fov\": \"").Append(fov.Horizontal.ToString("F0", inv)).Append("x").Append(fov.Vertical.ToString("F0", inv))
+              .Append(" (Meta VR Glasses: ").Append(fov.Left.ToString("F0", inv)).Append(" left, ").Append(fov.Right.ToString("F0", inv))
+              .Append(" right, ").Append(fov.Up.ToString("F0", inv)).Append(" up, ").Append(fov.Down.ToString("F0", inv)).Append(" down)\",\n");
             sb.Append("    \"hud\": ").Append(FovEntry(head, fov, table.Frame.ToWorld(UiAnchors.TrickHud).ToUnity(), ref inside, ref total)).Append(",\n");
             sb.Append("    \"banner\": ").Append(FovEntry(head, fov, table.Frame.ToWorld(UiAnchors.ShowBanner).ToUnity(), ref inside, ref total)).Append(",\n");
             sb.Append("    \"mat_centre\": ").Append(FovEntry(head, fov, table.Frame.ToWorld(UiAnchors.MatCentre).ToUnity(), ref inside, ref total)).Append(",\n");
