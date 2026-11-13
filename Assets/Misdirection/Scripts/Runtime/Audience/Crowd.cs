@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Text;
+using Misdirection.Access;
 using Misdirection.Core.Crowd;
 using Misdirection.Core.Hands;
 using Misdirection.Hands;
@@ -128,7 +129,8 @@ namespace Misdirection.Audience
         /// <summary>A secret move (palm, ditch, load) happened at <paramref name="point"/>. Adds suspicion to whoever saw it.</summary>
         public WitnessReport ReportMethod(Vector3 point, float severity = 1f)
         {
-            return model.Witness(point.ToNumerics(), severity);
+            // Day 11 access hook: relaxed timing lowers the suspicion gained (how well it was seen is unchanged).
+            return model.Witness(point.ToNumerics(), severity * AccessSettings.SuspicionScale);
         }
 
         /// <summary>Call every frame while the secret hand carries something: exposure inside a cone builds suspicion.</summary>
@@ -136,7 +138,8 @@ namespace Misdirection.Audience
         {
             secretPoint = point;
             hasSecret = true;
-            model.Expose(point.ToNumerics(), Time.deltaTime, exposureRate);
+            // Day 11 access hook: relaxed timing lowers the suspicion gained.
+            model.Expose(point.ToNumerics(), Time.deltaTime, exposureRate * AccessSettings.SuspicionScale);
         }
 
         /// <summary>Nothing secret is in play this frame (clears the red cone tint).</summary>
