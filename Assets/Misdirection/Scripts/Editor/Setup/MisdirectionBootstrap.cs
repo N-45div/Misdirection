@@ -213,6 +213,8 @@ namespace Misdirection.EditorTools
                 yield return null;
                 yield return OVRProjectSetup.FixAllAsync(BuildTargetGroup.Android);
                 RequestScenePermission();
+                // Day 12: foveation, CPU/GPU levels and 72 Hz are asked for at runtime, by a component.
+                PerformanceSetup.EnsureScenePerformance(false);
                 if (!EditorSceneManager.SaveScene(scene))
                 {
                     throw new IOException("Could not save " + path);
@@ -225,6 +227,9 @@ namespace Misdirection.EditorTools
             yield return OVRProjectSetup.FixAllAsync(BuildTargetGroup.Standalone);
             yield return null;
             yield return OVRProjectSetup.FixAllAsync(BuildTargetGroup.Standalone);
+            // Day 12, after Meta's fixes so both agree: URP asset for Quest 3 / 3S, multiview.
+            Log("Day 12: Quest 3 / 3S render settings");
+            PerformanceSetup.EnsureQuestRenderSettings();
             AssetDatabase.SaveAssets();
         }
 
