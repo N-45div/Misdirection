@@ -13,9 +13,9 @@ namespace Misdirection.Access
     /// per accessibility option, each a different shape with a one- or two-word label. A token is
     /// switched by looking at it for 1.5 s (a ring fills: eyes-only and head-only navigation), or by
     /// a deliberate poke or pinch with either hand. Looking only counts while the coin rests on the
-    /// mat or the show is waiting for the player's hands, so a glance can't change the rules mid-move. A token that is on is
-    /// raised, full-size and bright; one that is off is low, small and grey: shape and size, not
-    /// colour alone. Primitives and shared materials only.
+    /// mat or the show is waiting for the player's hands, so a glance can't change the rules
+    /// mid-move. A token that is on is raised, full-size and bright; one that is off is low, small
+    /// and grey: shape and size, not colour alone. Primitives and shared materials only.
     /// </summary>
     [DefaultExecutionOrder(32)]
     public sealed class AccessTray : MonoBehaviour
