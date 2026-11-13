@@ -34,6 +34,8 @@ namespace Misdirection.Hands
         private Vector3 palmOffsetLocal = new Vector3(0f, -0.02f, 0.06f);
         private bool stableInitialised;
         private Renderer indicator;
+        private Color indicatorColor;
+        private bool indicatorTinted;
 
         public HandId Side { get { return side; } }
         public HandPresence Presence { get { return presence; } }
@@ -92,6 +94,8 @@ namespace Misdirection.Hands
                     Destroy(c);
                 }
                 indicator = dot.GetComponent<Renderer>();
+                // Day 12: shared white material; the state colour is a per-renderer tint (UpdateIndicator).
+                indicator.sharedMaterial = SharedMaterials.Lit(Color.white);
             }
         }
 
@@ -211,7 +215,12 @@ namespace Misdirection.Hands
                 case HandPresenceState.Recovering: c = new Color(0.3f, 0.6f, 1f); break;
                 default: c = new Color(1f, 0.25f, 0.2f); break;
             }
-            indicator.material.color = c;
+            if (!indicatorTinted || c != indicatorColor)
+            {
+                indicatorTinted = true;
+                indicatorColor = c;
+                SharedMaterials.Tint(indicator, c);
+            }
         }
 
         private static float FingerOpenness(Transform tip, Transform knuckle, Vector3 wrist)

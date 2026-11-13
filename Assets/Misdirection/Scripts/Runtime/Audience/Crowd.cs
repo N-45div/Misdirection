@@ -43,6 +43,10 @@ namespace Misdirection.Audience
         [SerializeField] private FlourishSettings flourishSettings = new FlourishSettings();
         [Tooltip("Suspicion per second while the secret hand carries something inside a cone.")]
         [SerializeField] private float exposureRate = 0.15f;
+        [Tooltip("Day 12: find the looked-at spectator with Meta's Interaction SDK (spectator faces are ISDK gaze " +
+                 "interactables, hovered by an ISDK GazeInteractor along the look ray). Off, or if it fails: the " +
+                 "crowd model's own angle test, which behaves the same.")]
+        [SerializeField] private bool useIsdkGaze = true;
 
         [Header("Debug and tutorial")]
         [SerializeField] private bool showCones = true;
@@ -56,8 +60,37 @@ namespace Misdirection.Audience
         private Vector3 secretPoint;
         private bool hasSecret;
         private Transform gazeDot;
+        private IsdkSpectatorGaze isdkGaze;
+        private readonly StringBuilder summaryBuilder = new StringBuilder(128);
+        private string summaryText;
+        private int summaryStamp;
 
         public CrowdModel Model { get { return model; } }
+
+        /// <summary>Where the looked-at spectator comes from right now: the ISDK gaze interactor or the crowd model's own test.</summary>
+        public string GazeSource
+        {
+            get
+            {
+                if (isdkGaze == null || !isdkGaze.isActiveAndEnabled)
+                {
+                    return "crowd model";
+                }
+                return isdkGaze.Working ? isdkGaze.Status : "crowd model (" + isdkGaze.Status + ")";
+            }
+        }
+
+        /// <summary>
+        /// A coin was just plucked from behind a spectator's ear (look + pinch). Passed to the ISDK gaze
+        /// interactor as a select of the face being looked at; it changes nothing in the game.
+        /// </summary>
+        public void Pluck()
+        {
+            if (isdkGaze != null && isdkGaze.isActiveAndEnabled)
+            {
+                isdkGaze.Pluck();
+            }
+        }
 
         /// <summary>How the last placement went, for HUDs ("open floor", "tightened near walls", ...).</summary>
         public string LayoutNote { get; private set; }
@@ -178,7 +211,15 @@ namespace Misdirection.Audience
         /// <summary>One line per spectator for HUDs: focus and suspicion.</summary>
         public string Summary()
         {
-            StringBuilder sb = new StringBuilder();
+            // Day 12: HUDs ask every frame. Rebuild the text only when it would read differently.
+            int stamp = SummaryStamp();
+            if (stamp == summaryStamp && summaryText != null)
+            {
+                return summaryText;
+            }
+            summaryStamp = stamp;
+            StringBuilder sb = summaryBuilder;
+            sb.Length = 0;
             foreach (Spectator s in spectators)
             {
                 SpectatorMind m = s.Mind;
@@ -189,7 +230,25 @@ namespace Misdirection.Audience
                 sb.Append(m.Profile.Archetype).Append(": ").Append(FocusWord(m)).Append(' ')
                   .Append(Mathf.RoundToInt(m.Suspicion * 100f)).Append('%');
             }
-            return sb.ToString();
+            summaryText = sb.ToString();
+            return summaryText;
+        }
+
+        /// <summary>
+        /// A number that changes whenever <see cref="Summary"/> would read differently (who is here, each
+        /// focus, each whole percent of suspicion). Costs no memory, so HUDs can check it every frame.
+        /// </summary>
+        public int SummaryStamp()
+        {
+            int stamp = 17 + spectators.Count;
+            for (int i = 0; i < spectators.Count; i++)
+            {
+                SpectatorMind m = spectators[i].Mind;
+                stamp = stamp * 31 + (int)m.Profile.Archetype;
+                stamp = stamp * 31 + (int)m.Focus;
+                stamp = stamp * 31 + Mathf.RoundToInt(m.Suspicion * 100f);
+            }
+            return stamp;
         }
 
         private void Awake()
@@ -212,9 +271,21 @@ namespace Misdirection.Audience
                 {
                     Destroy(c);
                 }
-                dot.GetComponent<Renderer>().material.color = new Color(0.4f, 0.8f, 1f);
+                dot.GetComponent<Renderer>().sharedMaterial = SharedMaterials.Lit(new Color(0.4f, 0.8f, 1f));
                 gazeDot = dot.transform;
                 dot.SetActive(false);
+            }
+            // Day 12: spectator faces as ISDK gaze interactables. Added here when the scene has none, so
+            // scenes saved before Day 12 get it too; everything works the same without it.
+            isdkGaze = GetComponent<IsdkSpectatorGaze>();
+            if (useIsdkGaze && isdkGaze == null)
+            {
+                isdkGaze = gameObject.AddComponent<IsdkSpectatorGaze>();
+            }
+            if (isdkGaze != null)
+            {
+                isdkGaze.Configure(this, lookSource);
+                isdkGaze.enabled = useIsdkGaze;
             }
         }
 
@@ -389,17 +460,21 @@ namespace Misdirection.Audience
 
         private Vector3 HandsCenter()
         {
+            // Day 12: no temporary array (this runs every frame).
             Vector3 sum = Vector3.zero;
             int n = 0;
-            foreach (TrackedHand hand in new[] { leftHand, rightHand })
-            {
-                if (hand != null && hand.Presence != null && hand.Presence.HasPose)
-                {
-                    sum += hand.StablePalm.position;
-                    n++;
-                }
-            }
+            AddPalm(leftHand, ref sum, ref n);
+            AddPalm(rightHand, ref sum, ref n);
             return n > 0 ? sum / n : Stage();
+        }
+
+        private static void AddPalm(TrackedHand hand, ref Vector3 sum, ref int n)
+        {
+            if (hand != null && hand.Presence != null && hand.Presence.HasPose)
+            {
+                sum += hand.StablePalm.position;
+                n++;
+            }
         }
 
         private Vector3 Stage()

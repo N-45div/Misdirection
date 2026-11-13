@@ -53,6 +53,10 @@ namespace Misdirection.Show
         private bool hasCoin;
         private Vector3 lookWorld;
         private bool hasLook;
+        // Day 12 (FoV-aware): the caption eases into view when the player looks away from the ghost hands.
+        // Its zone is 4 degrees larger than the prompt's and banner's, so it settles clear of them
+        // (and still inside the glasses' view: 37 degrees down of 41).
+        private readonly ComfortAnchor captionComfort = new ComfortAnchor(4f);
 
         public MentorDemo Demo { get { return demo; } }
 
@@ -116,8 +120,8 @@ namespace Misdirection.Show
 
         private void Awake()
         {
-            Material material = new Material(Shader.Find("Sprites/Default"));
-            material.color = ghost;
+            // Day 12: from the shared cache (transparent, one material for both hands and the ring).
+            Material material = SharedMaterials.Overlay(ghost);
             right = new GhostHand(transform, false, material);
             left = new GhostHand(transform, true, material);
             caption = WorldText.Create(transform, "Mentor Caption", new Vector2(0.5f, 0.08f), 0.35f);
@@ -130,7 +134,7 @@ namespace Misdirection.Show
             ring.loop = true;
             ring.positionCount = 32;
             ring.startWidth = ring.endWidth = 0.008f;
-            ring.material = material;
+            ring.sharedMaterial = material;
             ring.startColor = ring.endColor = ghost;
 
             audioSource = gameObject.AddComponent<AudioSource>();
@@ -250,7 +254,13 @@ namespace Misdirection.Show
                 }
             }
 
-            caption.gameObject.SetActive(captions && caption.text.Length > 0);
+            bool showCaption = captions && caption.text.Length > 0;
+            caption.gameObject.SetActive(showCaption);
+            if (showCaption)
+            {
+                float floor = table != null && table.Calibrated ? table.Frame.Origin.Y + UiAnchors.TableClearance : float.NegativeInfinity;
+                captionAt = captionComfort.Place(captionAt, head, floor);
+            }
             caption.transform.position = captionAt;
             WorldText.Face(caption.transform, head.position);
         }
@@ -404,13 +414,18 @@ namespace Misdirection.Show
         public void Place(Vector3 wrist, Quaternion rotation, HandPose pose)
         {
             root.SetPositionAndRotation(wrist, rotation);
-            float[] curls = { pose.Index, pose.Middle, pose.Ring, pose.Pinky };
-            for (int i = 0; i < 4; i++)
-            {
-                fingers[i].localRotation = Quaternion.Euler(curls[i], baseYaw[i] * pose.Spread * 0.6f, 0f);
-            }
+            // Day 12: no temporary array (this runs every frame while a ghost hand shows).
+            Curl(0, pose.Index, pose.Spread);
+            Curl(1, pose.Middle, pose.Spread);
+            Curl(2, pose.Ring, pose.Spread);
+            Curl(3, pose.Pinky, pose.Spread);
             // Thumb points forward and out; curling swings it under the index.
             thumb.localRotation = Quaternion.Euler(pose.Thumb * 0.6f, side * (40f - pose.Thumb * 0.6f), 0f);
+        }
+
+        private void Curl(int finger, float curl, float spread)
+        {
+            fingers[finger].localRotation = Quaternion.Euler(curl, baseYaw[finger] * spread * 0.6f, 0f);
         }
 
         private static void Capsule(Transform pivot, float length, float radius, Material material)

@@ -35,7 +35,7 @@ namespace Misdirection.Tricks
             {
                 Destroy(c);
             }
-            go.GetComponent<Renderer>().material.color = color;
+            go.GetComponent<Renderer>().sharedMaterial = SharedMaterials.Lit(color);
             coin = go.transform;
         }
 

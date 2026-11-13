@@ -33,6 +33,17 @@ namespace Misdirection.Tricks
         private Vector3 reactionAnchor;
         private SpikeCsvLog log;
         private bool writeCsv;
+        // Day 12 (FoV-aware): the floating reaction eases into view when the player looks away (the
+        // prompt does too, together with the show's banner: ComfortAnchor.TableOffset).
+        private readonly ComfortAnchor reactionComfort = new ComfortAnchor();
+        // What the prompt text was last built from (Day 12: rebuilt only when one of these changes).
+        private bool promptStale = true;
+        private string shownPrompt;
+        private int shownTips;
+        private string shownLastKind;
+        private Reaction shownLastReaction;
+        private int shownAmazement;
+        private int shownCrowdStamp;
 
         public readonly AudioClip Pickup = Tones.Beep("pickup", 1046f, 0.06f, 0.3f);
         public readonly AudioClip Hide = Tones.Thud("hide", 220f, 90f, 0.18f, 0.4f);
@@ -64,6 +75,7 @@ namespace Misdirection.Tricks
 
         public void SetHud(string text)
         {
+            promptStale = true;
             if (hud.text != text)
             {
                 hud.text = text;
@@ -73,9 +85,31 @@ namespace Misdirection.Tricks
         /// <summary>The prompt with tips, the last reaction and (if any) the crowd's state.</summary>
         public void SetPrompt(string prompt, int tips, RevealResult last, Crowd crowd)
         {
-            string crowdLine = crowd != null && crowd.Spectators.Count > 0 ? "\n<size=55%>" + crowd.Summary() + "</size>" : "";
-            string lastLine = last.Kind != null ? "   Last: " + last.Reaction + " (" + Mathf.RoundToInt(last.Amazement * 100f) + "%)" : "";
+            // Day 12: called every frame. Build the text only while the HUD shows and only when
+            // something it shows has changed.
+            if (!hud.gameObject.activeSelf)
+            {
+                return;
+            }
+            bool hasCrowd = crowd != null && crowd.Spectators.Count > 0;
+            int crowdStamp = hasCrowd ? crowd.SummaryStamp() : 0;
+            int amazement = Mathf.RoundToInt(last.Amazement * 100f);
+            if (!promptStale && prompt == shownPrompt && tips == shownTips && last.Kind == shownLastKind &&
+                last.Reaction == shownLastReaction && amazement == shownAmazement && crowdStamp == shownCrowdStamp)
+            {
+                return;
+            }
+            shownPrompt = prompt;
+            shownTips = tips;
+            shownLastKind = last.Kind;
+            shownLastReaction = last.Reaction;
+            shownAmazement = amazement;
+            shownCrowdStamp = crowdStamp;
+
+            string crowdLine = hasCrowd ? "\n<size=55%>" + crowd.Summary() + "</size>" : "";
+            string lastLine = last.Kind != null ? "   Last: " + last.Reaction + " (" + amazement + "%)" : "";
             SetHud("<b>" + prompt + "</b>\n<size=70%>Tips: " + tips + lastLine + "</size>" + crowdLine);
+            promptStale = false;
         }
 
         public void SetVisible(bool visible)
@@ -140,7 +174,7 @@ namespace Misdirection.Tricks
             Vector3 pos;
             if (table != null && table.Calibrated)
             {
-                pos = table.Frame.ToWorld(new NVector3(0f, 0.16f, 0.62f)).ToUnity();
+                pos = table.Frame.ToWorld(UiAnchors.TrickHud).ToUnity() + ComfortAnchor.TableOffset(table.Frame, viewer, viewerForward);
             }
             else
             {
@@ -155,7 +189,8 @@ namespace Misdirection.Tricks
             reaction.gameObject.SetActive(visible);
             if (visible)
             {
-                reaction.transform.position = reactionAnchor + Vector3.up * (float)(now - reactionStart) * 0.04f;
+                Vector3 home = reactionAnchor + Vector3.up * (float)(now - reactionStart) * 0.04f;
+                reaction.transform.position = reactionComfort.Place(home, viewer, viewerForward);
                 WorldText.Face(reaction.transform, viewer);
             }
         }

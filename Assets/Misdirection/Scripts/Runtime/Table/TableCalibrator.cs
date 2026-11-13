@@ -302,7 +302,7 @@ namespace Misdirection.Table
                 {
                     Destroy(c);
                 }
-                mat.GetComponent<Renderer>().material.color = new Color(0.08f, 0.22f, 0.15f);
+                mat.GetComponent<Renderer>().sharedMaterial = SharedMaterials.Lit(new Color(0.08f, 0.22f, 0.15f));
             }
             mat.transform.SetPositionAndRotation(Frame.ToWorld(new System.Numerics.Vector3(0f, 0.001f, matCenterZ)).ToUnity(), rot);
             mat.transform.localScale = new Vector3(matSize.x, 0.002f, matSize.y);
@@ -318,7 +318,8 @@ namespace Misdirection.Table
                 outline = go.AddComponent<LineRenderer>();
                 outline.useWorldSpace = true;
                 outline.startWidth = outline.endWidth = 0.003f;
-                outline.material = new Material(Shader.Find("Sprites/Default"));
+                // Shared white transparent material; the colour comes from the line's vertex colours below.
+                outline.sharedMaterial = SharedMaterials.Overlay();
                 outline.startColor = outline.endColor = new Color(0.6f, 0.4f, 1f, 0.8f);
             }
             System.Numerics.Vector3 c0 = zone.Center;

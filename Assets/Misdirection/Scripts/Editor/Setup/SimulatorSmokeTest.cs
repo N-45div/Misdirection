@@ -8,6 +8,8 @@ using Misdirection.Access;
 using Misdirection.Audience;
 using Misdirection.Core.Table;
 using Misdirection.Progress;
+using Misdirection.Core.View;
+using Misdirection.Perf;
 using Misdirection.Show;
 using Misdirection.Table;
 using Misdirection.Tricks;
@@ -39,6 +41,8 @@ namespace Misdirection.EditorTools
         private const double WarmUpSeconds = 15;
         private const double ForceTableAfterSeconds = 20;
         private const double ReportAfterSeconds = 30;
+        // Day 12: render statistics are averaged over the last seconds before the report (crowd up, show running).
+        private const double RenderStatsSeconds = 5;
         private const double TimeoutSeconds = 600;
 
         public const string ReportDir = "Builds/Smoke";
@@ -50,6 +54,8 @@ namespace Misdirection.EditorTools
         private static int framesAtWarmUp = -1;
         private static double timeAtWarmUp;
         private static Task pending;
+        private static int statSamples;
+        private static long statBatches, statDrawCalls, statSetPassCalls, statTriangles, statVertices;
 
         static SimulatorSmokeTest()
         {
@@ -178,6 +184,16 @@ namespace Misdirection.EditorTools
                 Notes.Add("no table after " + ForceTableAfterSeconds + " s: placed one in front of the simulated head");
             }
 
+            if (t >= ReportAfterSeconds - RenderStatsSeconds)
+            {
+                // What the Game view's Stats panel shows: a PC-side stand-in for draw cost on the headset.
+                statSamples++;
+                statBatches += UnityStats.batches;
+                statDrawCalls += UnityStats.drawCalls;
+                statSetPassCalls += UnityStats.setPassCalls;
+                statTriangles += UnityStats.triangles;
+                statVertices += UnityStats.vertices;
+            }
             if (t < ReportAfterSeconds)
             {
                 return;
@@ -244,6 +260,9 @@ namespace Misdirection.EditorTools
             json.Append("  \"floor_y\": ").Append(room != null && room.HasFloor ? room.FloorY.ToString("F2", inv) : "null").Append(",\n");
             json.Append("  \"spectators\": ").Append(spectators).Append(",\n");
             json.Append("  \"crowd_layout\": \"").Append(Escape(crowd != null ? crowd.LayoutNote : "")).Append("\",\n");
+            // Day 12: who decides which spectator is looked at (the ISDK gaze interactor, or the crowd model as fallback).
+            json.Append("  \"gaze_source\": \"").Append(Escape(crowd != null ? crowd.GazeSource : "no crowd")).Append("\",\n");
+            json.Append("  \"looked_at\": ").Append(crowd != null && crowd.Model != null ? crowd.Model.LookedAt : -1).Append(",\n");
             json.Append("  \"active_trick\": \"").Append(activeTrick).Append("\",\n");
             json.Append("  \"show_stage\": \"").Append(stage).Append("\",\n");
             json.Append("  \"tutorial_step\": \"").Append(show != null && show.Tutorial != null ? show.Tutorial.Step.ToString() : "").Append("\",\n");
@@ -256,12 +275,110 @@ namespace Misdirection.EditorTools
             json.Append("  \"access_settings\": \"").Append(Escape(access != null ? access.Summary : "no AccessRuntime")).Append("\",\n");
             json.Append("  \"time_scale\": ").Append(Time.timeScale.ToString("F2", inv)).Append(",\n");
             json.Append("  \"editor_fps\": ").Append(fps.ToString("F1", inv)).Append(",\n");
+            // Day 12: draw cost on the PC (compare runs before and after a change), averaged over the last seconds.
+            int n = Math.Max(1, statSamples);
+            json.Append("  \"batches\": ").Append(statBatches / n).Append(",\n");
+            json.Append("  \"draw_calls\": ").Append(statDrawCalls / n).Append(",\n");
+            json.Append("  \"set_pass_calls\": ").Append(statSetPassCalls / n).Append(",\n");
+            json.Append("  \"triangles\": ").Append(statTriangles / n).Append(",\n");
+            json.Append("  \"vertices\": ").Append(statVertices / n).Append(",\n");
+            json.Append("  \"render_stat_samples\": ").Append(statSamples).Append(",\n");
+            int renderers;
+            int materials = CountMaterials(out renderers);
+            json.Append("  \"renderers\": ").Append(renderers).Append(",\n");
+            json.Append("  \"materials_in_use\": ").Append(materials).Append(",\n");
+            json.Append("  \"shared_materials\": \"").Append(Escape(SharedMaterials.Describe())).Append("\",\n");
+            json.Append("  \"perf_log\": \"").Append(Escape(PerfLogger.LastWindow ?? "no PerfLogger window yet")).Append("\",\n");
+            json.Append("  \"headset_settings\": \"").Append(Escape(QuestPerformance.LastApplied ?? "no QuestPerformance in the scene")).Append("\",\n");
+            // Day 12: would the essentials be visible on the narrowest device, from where the head is now?
+            json.Append("  \"fov_check\": ").Append(FovCheck(table, crowd)).Append(",\n");
             json.Append("  \"notes\": [").Append(JoinQuoted(Notes)).Append("],\n");
             json.Append("  \"errors\": [").Append(JoinQuoted(Errors)).Append("]\n");
             json.Append("}\n");
             File.WriteAllText(Path.Combine(ReportDir, "report.json"), json.ToString());
             Log("report written: pass=" + pass + " table=" + (table != null ? table.Source.ToString() : "missing") +
                 " spectators=" + spectators + " trick=" + activeTrick + " show=" + stage + " errors=" + Errors.Count);
+        }
+
+        /// <summary>
+        /// Which key anchors fall inside a 70 x 66 degree view (Meta VR Glasses: 25 up, 41 down) from the current head pose:
+        /// the trick prompt, the show banner, the mat centre and each spectator's face, with where each
+        /// sits in the view (yaw right, pitch up, degrees). Information only: it doesn't fail the run,
+        /// because the simulated head may be looking anywhere.
+        /// </summary>
+        private static string FovCheck(TableCalibrator table, Crowd crowd)
+        {
+            Transform head = Camera.main != null ? Camera.main.transform : null;
+            if (head == null || table == null || !table.Calibrated)
+            {
+                return "null";
+            }
+            FieldOfView fov = FieldOfView.Glasses;
+            int inside = 0;
+            int total = 0;
+            StringBuilder sb = new StringBuilder();
+            CultureInfo inv = CultureInfo.InvariantCulture;
+            sb.Append("{\n    \"fov\": \"").Append(fov.Horizontal.ToString("F0", inv)).Append("x").Append(fov.Vertical.ToString("F0", inv))
+              .Append(" (Meta VR Glasses: ").Append(fov.Left.ToString("F0", inv)).Append(" left, ").Append(fov.Right.ToString("F0", inv))
+              .Append(" right, ").Append(fov.Up.ToString("F0", inv)).Append(" up, ").Append(fov.Down.ToString("F0", inv)).Append(" down)\",\n");
+            sb.Append("    \"hud\": ").Append(FovEntry(head, fov, table.Frame.ToWorld(UiAnchors.TrickHud).ToUnity(), ref inside, ref total)).Append(",\n");
+            sb.Append("    \"banner\": ").Append(FovEntry(head, fov, table.Frame.ToWorld(UiAnchors.ShowBanner).ToUnity(), ref inside, ref total)).Append(",\n");
+            sb.Append("    \"mat_centre\": ").Append(FovEntry(head, fov, table.Frame.ToWorld(UiAnchors.MatCentre).ToUnity(), ref inside, ref total)).Append(",\n");
+            sb.Append("    \"spectators\": [");
+            if (crowd != null)
+            {
+                for (int i = 0; i < crowd.Spectators.Count; i++)
+                {
+                    string entry = FovEntry(head, fov, crowd.Spectators[i].EyesPosition, ref inside, ref total);
+                    sb.Append(i > 0 ? ", " : "").Append("{\"name\": \"").Append(Escape(crowd.NameOf(i))).Append("\", ").Append(entry.Substring(1));
+                }
+            }
+            sb.Append("],\n");
+            sb.Append("    \"inside\": ").Append(inside).Append(",\n");
+            sb.Append("    \"of\": ").Append(total).Append("\n  }");
+            return sb.ToString();
+        }
+
+        private static string FovEntry(Transform head, FieldOfView fov, Vector3 point, ref int inside, ref int total)
+        {
+            System.Numerics.Vector3 eye = head.position.ToNumerics();
+            System.Numerics.Vector3 forward = head.forward.ToNumerics();
+            System.Numerics.Vector3 up = head.up.ToNumerics();
+            bool seen = ViewCone.Contains(eye, forward, up, fov, point.ToNumerics());
+            float yaw, pitch;
+            ViewCone.Angles(eye, forward, up, point.ToNumerics(), out yaw, out pitch);
+            total++;
+            if (seen)
+            {
+                inside++;
+            }
+            CultureInfo inv = CultureInfo.InvariantCulture;
+            return "{\"inside\": " + (seen ? "true" : "false") + ", \"yaw\": " + yaw.ToString("F1", inv) + ", \"pitch\": " + pitch.ToString("F1", inv) + "}";
+        }
+
+        /// <summary>How many different materials the scene's active renderers use (fewer = fewer state changes).</summary>
+        private static int CountMaterials(out int renderers)
+        {
+            HashSet<Material> seen = new HashSet<Material>();
+            List<Material> shared = new List<Material>();
+            renderers = 0;
+            foreach (Renderer r in UnityEngine.Object.FindObjectsByType<Renderer>(FindObjectsSortMode.None))
+            {
+                if (!r.enabled)
+                {
+                    continue;
+                }
+                renderers++;
+                r.GetSharedMaterials(shared);
+                foreach (Material m in shared)
+                {
+                    if (m != null)
+                    {
+                        seen.Add(m);
+                    }
+                }
+            }
+            return seen.Count;
         }
 
         private static void OnLog(string message, string stackTrace, LogType type)

@@ -162,6 +162,11 @@ namespace Misdirection.EditorTools
             }
             yield return null;
 
+            // Day 12: the shaders the runtime-built spectators and props use must be in the APK.
+            Log("Day 12: shaders that ship (shared materials)");
+            PerformanceSetup.EnsureShippedShaders();
+            yield return null;
+
             Log("4/8 Spike scene");
             foreach (object step in BuildScene(SpikeScenePath, new[] { PassthroughBlock, HandTrackingBlock }, SceneContent.TrackingSpike))
             {
@@ -214,6 +219,10 @@ namespace Misdirection.EditorTools
                 RequestScenePermission();
                 // Day 11: Meta's Fix All can rewrite the manifest; Unity must never ask for permissions at startup.
                 AccessSetup.EnsureNoStartupPermissionPrompt();
+                // Day 12: foveation, CPU/GPU levels and 72 Hz are asked for at runtime, by a component.
+                PerformanceSetup.EnsureScenePerformance(false);
+                // Day 12: spectator faces as ISDK gaze interactables (scenes with a crowd).
+                GazeSetup.EnsureIsdkGaze(false);
                 if (!EditorSceneManager.SaveScene(scene))
                 {
                     throw new IOException("Could not save " + path);
@@ -226,6 +235,9 @@ namespace Misdirection.EditorTools
             yield return OVRProjectSetup.FixAllAsync(BuildTargetGroup.Standalone);
             yield return null;
             yield return OVRProjectSetup.FixAllAsync(BuildTargetGroup.Standalone);
+            // Day 12, after Meta's fixes so both agree: URP asset for Quest 3 / 3S, multiview.
+            Log("Day 12: Quest 3 / 3S render settings");
+            PerformanceSetup.EnsureQuestRenderSettings();
             AssetDatabase.SaveAssets();
         }
 

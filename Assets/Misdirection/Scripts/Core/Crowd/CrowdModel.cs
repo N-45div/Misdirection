@@ -47,6 +47,8 @@ namespace Misdirection.Core.Crowd
         private Vector3 soundPoint;
         private double soundTime = double.NegativeInfinity;
         private float soundStrength;
+        private int reportedHover = -1;
+        private bool hoverReported;
 
         public CrowdModel(CrowdSettings settings = null, AttentionSettings attention = null)
         {
@@ -59,6 +61,28 @@ namespace Misdirection.Core.Crowd
 
         /// <summary>Index of the spectator the magician is looking at, or -1.</summary>
         public int LookedAt { get; private set; }
+
+        /// <summary>The face angles and other settings this model uses.</summary>
+        public CrowdSettings Settings { get { return settings; } }
+
+        /// <summary>
+        /// True if the last update took the looked-at face from an outside gaze interactor
+        /// (<see cref="ReportHover"/>), false if this model's own angle test decided.
+        /// </summary>
+        public bool HoverWasReported { get; private set; }
+
+        /// <summary>
+        /// Day 12: an outside gaze interactor (Meta's Interaction SDK, hit-testing the spectators' faces
+        /// along the look ray) says whose face the look is on this frame: an index, or -1 for nobody.
+        /// Call it before <see cref="Update"/> on every frame the interactor is working; a frame
+        /// without a report falls back to this model's own test. Either way a face, once looked at,
+        /// stays looked at until the look drifts past <see cref="CrowdSettings.FaceReleaseDegrees"/>.
+        /// </summary>
+        public void ReportHover(int spectator)
+        {
+            reportedHover = spectator;
+            hoverReported = true;
+        }
 
         public Vector3 GazePoint { get; private set; }
 
@@ -95,7 +119,11 @@ namespace Misdirection.Core.Crowd
 
         public void Update(double time, float dt, Vector3 magicianEyes, Vector3 gazeDirection, Vector3 handsCenter, Vector3 stage, float tableHeight)
         {
-            LookedAt = ResolveGaze(magicianEyes, gazeDirection, LookedAt);
+            LookedAt = hoverReported
+                ? HoldGaze(reportedHover, magicianEyes, gazeDirection, LookedAt)
+                : ResolveGaze(magicianEyes, gazeDirection, LookedAt);
+            HoverWasReported = hoverReported;
+            hoverReported = false;
             GazePoint = LookedAt >= 0
                 ? spectators[LookedAt].Eyes
                 : GazePointOf(magicianEyes, gazeDirection, tableHeight, settings.GazeDepth, settings.MaxTableDistance);
@@ -201,6 +229,33 @@ namespace Misdirection.Core.Crowd
                 }
             }
             return best;
+        }
+
+        /// <summary>
+        /// The looked-at face when an outside interactor did the hit test: its answer when it has one,
+        /// otherwise the current face for as long as the look stays within the release angle. With a
+        /// hit test that accepts a face within <see cref="CrowdSettings.FaceAngleDegrees"/> and prefers
+        /// the nearest to the ray, this gives the same result as <see cref="ResolveGaze"/>.
+        /// </summary>
+        private int HoldGaze(int hovered, Vector3 origin, Vector3 direction, int current)
+        {
+            if (hovered >= 0 && hovered < spectators.Count)
+            {
+                return hovered;
+            }
+            if (current < 0 || current >= spectators.Count || direction.LengthSquared() < 1e-8f)
+            {
+                return -1;
+            }
+            Vector3 to = spectators[current].Eyes - origin;
+            float distance = to.Length();
+            if (distance < 1e-4f)
+            {
+                return -1;
+            }
+            float angle = AngleDegrees(Vector3.Normalize(direction), to / distance);
+            float widen = (float)(Math.Atan2(settings.FaceRadius, distance) * 180.0 / Math.PI);
+            return angle <= Math.Max(settings.FaceReleaseDegrees, widen) ? current : -1;
         }
 
         /// <summary>Where a look ray lands: on the table plane when it points down at a nearby table, else a point ahead.</summary>
