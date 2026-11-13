@@ -568,3 +568,147 @@ public static class ShowRecordTests
         Assert.Equal(0, record.CrowdOf(7).Length, "no such act");
     }
 }
+
+public static class TrickBookTests
+{
+    private static TrickMastery[] NewBook()
+    {
+        return new[] { new TrickMastery(), new TrickMastery() };
+    }
+
+    [Test]
+    public static void FirstCleanRevealEarnsTheFirstStarEvenIfTheActNeverFinishes()
+    {
+        TrickMastery[] book = NewBook();
+        ShowAct[] acts = ProgressSim.ClassicActs();
+        ShowRecord record = new ShowRecord(acts);
+        record.AddReveal(0, 0, ProgressSim.Reveal("vanish", Reaction.Heckle, 0, 2), acts[0].Crowd);
+        int[] gained = TrickBook.Learn(book, record, 0);
+        Assert.Equal(0, book[0].Stars, "a heckle earns nothing");
+        Assert.Equal(0, gained[0]);
+
+        record.AddReveal(0, 0, ProgressSim.Reveal("vanish", Reaction.Gasp, 8), acts[0].Crowd);
+        gained = TrickBook.Learn(book, record, 0);
+        Assert.Equal(1, book[0].Stars, "a gasp is a clean reveal");
+        Assert.Equal(1, gained[0]);
+        Assert.Equal(0, book[1].Stars, "the cup wasn't performed");
+        Assert.Equal(0, book[0].Performances, "the act never finished");
+    }
+
+    [Test]
+    public static void ApplauseOnEveryRevealOfAWholePerformanceEarnsTheSecond()
+    {
+        TrickMastery[] book = NewBook();
+        ShowAct[] acts = ProgressSim.ClassicActs();
+        ShowRecord record = new ShowRecord(acts);
+        ProgressSim.CleanAct(record, acts, 0, Archetype.Kid);
+        int[] gained = TrickBook.Learn(book, record, 1);
+        Assert.True(book[0].Clean && book[0].Ovation, "clean and ovation");
+        Assert.False(book[0].ToughCrowd, "no Filmer in act 1");
+        Assert.Equal(2, book[0].Stars);
+        Assert.Equal(2, gained[0]);
+        Assert.Equal(1, book[0].Performances);
+    }
+
+    [Test]
+    public static void ABustAGaspOrABareLiftIsNotAnOvation()
+    {
+        ShowAct[] acts = ProgressSim.ClassicActs();
+
+        TrickMastery[] bust = NewBook();
+        ShowRecord withBust = new ShowRecord(acts);
+        withBust.AddBust(0, 0);
+        ProgressSim.CleanAct(withBust, acts, 0, Archetype.Kid);
+        TrickBook.Learn(bust, withBust, 1);
+        Assert.Equal(1, bust[0].Stars, "bust in the performance");
+
+        TrickMastery[] gasp = NewBook();
+        ShowRecord withGasp = new ShowRecord(acts);
+        withGasp.AddReveal(0, 0, ProgressSim.Reveal("vanish", Reaction.Gasp, 8), acts[0].Crowd);
+        withGasp.AddReveal(0, 0, ProgressSim.Reveal("produce", Reaction.Applause, 18, -1, 1), acts[0].Crowd);
+        TrickBook.Learn(gasp, withGasp, 1);
+        Assert.Equal(1, gasp[0].Stars, "one gasp");
+
+        // Lifting the cup without showing the vanish first is one reveal, not the whole trick.
+        TrickMastery[] lift = NewBook();
+        ShowRecord bareLift = new ShowRecord(acts);
+        bareLift.AddReveal(1, 1, ProgressSim.Reveal("cup", Reaction.Applause, 20), acts[1].Crowd);
+        TrickBook.Learn(lift, bareLift, 2);
+        Assert.Equal(1, lift[1].Stars, "bare lift");
+
+        // Not finished: the show ended (walk-off) before the act did.
+        TrickMastery[] cut = NewBook();
+        ShowRecord cutShort = new ShowRecord(acts);
+        ProgressSim.CleanAct(cutShort, acts, 0, Archetype.Kid);
+        TrickBook.Learn(cut, cutShort, 0);
+        Assert.Equal(1, cut[0].Stars, "unfinished act");
+    }
+
+    [Test]
+    public static void ToughCrowdStarNeedsTheSkepticAndTheFilmerAndNoHeckle()
+    {
+        ShowAct[] acts = ProgressSim.ClassicActs();
+
+        // Act 2 (cup) has both. Gasps are fine, a heckle is not.
+        TrickMastery[] book = NewBook();
+        ShowRecord gasps = new ShowRecord(acts);
+        gasps.AddReveal(1, 1, ProgressSim.Reveal("vanish", Reaction.Gasp, 10), acts[1].Crowd);
+        gasps.AddReveal(1, 1, ProgressSim.Reveal("cup", Reaction.Gasp, 12), acts[1].Crowd);
+        TrickBook.Learn(book, gasps, 2);
+        Assert.True(book[1].ToughCrowd, "unheckled in front of both");
+        Assert.False(book[1].Ovation, "gasps aren't an ovation");
+        Assert.Equal(2, book[1].Stars);
+
+        TrickMastery[] heckledBook = NewBook();
+        ShowRecord heckled = new ShowRecord(acts);
+        heckled.AddReveal(1, 1, ProgressSim.Reveal("vanish", Reaction.Heckle, 0, 3), acts[1].Crowd);
+        heckled.AddReveal(1, 1, ProgressSim.Reveal("cup", Reaction.Applause, 24), acts[1].Crowd);
+        TrickBook.Learn(heckledBook, heckled, 2);
+        Assert.False(heckledBook[1].ToughCrowd, "the Filmer heckled");
+
+        // The same clean performance in a room that only fitted three people: no Filmer watching.
+        TrickMastery[] smallRoom = NewBook();
+        ShowRecord fitted = new ShowRecord(acts);
+        Archetype[] three = { Archetype.Tourist, Archetype.Kid, Archetype.Skeptic };
+        fitted.AddReveal(1, 1, ProgressSim.Reveal("vanish", Reaction.Applause, 15), three);
+        fitted.AddReveal(1, 1, ProgressSim.Reveal("cup", Reaction.Applause, 18), three);
+        TrickBook.Learn(smallRoom, fitted, 2);
+        Assert.False(smallRoom[1].ToughCrowd, "no Filmer in the room");
+        Assert.Equal(2, smallRoom[1].Stars, "clean and ovation");
+    }
+
+    [Test]
+    public static void ACleanClassicShowMastersBothTricksAndStarsAreNeverLost()
+    {
+        TrickMastery[] book = NewBook();
+        ShowAct[] acts = ProgressSim.ClassicActs();
+        int[] gained = TrickBook.Learn(book, ProgressSim.CleanShow(acts, Archetype.Kid), 3);
+        Assert.Equal(3, book[0].Stars, "vanish: act 3 has the Skeptic and the Filmer");
+        Assert.Equal(3, book[1].Stars, "cup: act 2 has the Skeptic and the Filmer");
+        Assert.Equal(3, gained[0]);
+        Assert.Equal(3, gained[1]);
+        Assert.Equal(2, book[0].Performances, "acts 1 and 3");
+        Assert.Equal("", TrickBook.NextStarHint(book[0]), "nothing left to earn");
+
+        // A terrible show afterwards takes nothing away.
+        ShowRecord bad = new ShowRecord(acts);
+        bad.AddReveal(0, 0, ProgressSim.Reveal("vanish", Reaction.Heckle, 0, 2), acts[0].Crowd);
+        bad.AddBust(0, 0);
+        gained = TrickBook.Learn(book, bad, 0);
+        Assert.Equal(3, book[0].Stars);
+        Assert.Equal(0, gained[0]);
+    }
+
+    [Test]
+    public static void HintsNameTheNextStar()
+    {
+        TrickMastery m = new TrickMastery();
+        Assert.True(TrickBook.NextStarHint(m).Contains("no heckle"), TrickBook.NextStarHint(m));
+        m.Clean = true;
+        Assert.True(TrickBook.NextStarHint(m).Contains("applause"), TrickBook.NextStarHint(m));
+        m.Ovation = true;
+        Assert.True(TrickBook.NextStarHint(m).Contains("Filmer"), TrickBook.NextStarHint(m));
+        Assert.Equal("Vanish", TrickBook.NameOf(0));
+        Assert.Equal("Cup", TrickBook.NameOf(1));
+    }
+}
