@@ -1,4 +1,5 @@
-// Unit tests for the Day 10 "reason to come back" rules in Misdirection.Core.Progress.
+// Unit tests for the Day 10 "reason to come back" rules in Misdirection.Core.Progress: the daily
+// crowd and challenge, the trick book, the returning Regular's memory, streaks and the save data.
 using System;
 using System.Collections.Generic;
 using System.Numerics;
@@ -78,6 +79,14 @@ public static class ProgressSim
         s.ActsCompleted = actsCompleted >= 0 ? actsCompleted : record.ActCount;
         s.Stars = ShowFlow.StarsFor(walkedOff, s.Busts, s.Reveals, s.Applause);
         return s;
+    }
+
+    /// <summary>Plays a clean show of the day's plan and books it. Returns what changed.</summary>
+    public static ShowOutcome PlayCleanShow(ProgressData data, int today, Archetype ear)
+    {
+        DailyPlan plan = ProgressRules.PlanFor(data, today);
+        ShowRecord record = CleanShow(plan.Acts, ear);
+        return ProgressRules.FinishShow(data, today, plan.Challenge, record, Summary(record));
     }
 
     public static int Count(Archetype[] crowd, Archetype archetype)
@@ -891,5 +900,486 @@ public static class RegularTests
         skeptic.SetWariness(-3f, 99f);
         Assert.Near(0.0, skeptic.SuspicionGainScale, 1e-6, "scale can't go negative");
         Assert.Near(new AttentionSettings().MaxSuspicion, skeptic.SuspicionFloor, 1e-6, "floor is capped at the maximum");
+    }
+}
+
+public static class ProgressRulesTests
+{
+    [Test]
+    public static void TheFirstShowStartsDayOneAndAStreakOfOne()
+    {
+        ProgressData data = new ProgressData();
+        Assert.False(ProgressRules.IsReturning(data, ProgressSim.Day1), "never played");
+        Assert.Equal(1, ProgressRules.DayNumber(data, ProgressSim.Day1));
+        Assert.Equal(0, ProgressRules.StreakOn(data, ProgressSim.Day1));
+
+        ShowOutcome o = ProgressSim.PlayCleanShow(data, ProgressSim.Day1, Archetype.Kid);
+        Assert.True(o.NewDay);
+        Assert.Equal(1, o.DayNumber);
+        Assert.Equal(1, o.Streak);
+        Assert.Equal(1, data.ShowsPlayed);
+        Assert.Equal(1, data.ShowsFinished);
+        Assert.Equal(1, data.DaysPlayed);
+        Assert.Equal(ProgressSim.Day1, data.FirstPlayedDate);
+        Assert.Equal(ProgressSim.Day1, data.LastPlayedDate);
+        Assert.Equal(1, data.CurrentStreak);
+        Assert.Equal(1, data.LongestStreak);
+        Assert.Equal(3, data.BestStars);
+        Assert.True(data.BestTips > 0, "tips booked");
+        Assert.False(o.NewBestTips, "the very first show isn't a 'new best'");
+        Assert.False(ProgressRules.IsReturning(data, ProgressSim.Day1), "still the first day");
+        Assert.Equal(1, ProgressRules.DayNumber(data, ProgressSim.Day1));
+    }
+
+    [Test]
+    public static void ConsecutiveDaysGrowTheStreakAndASecondShowTodayDoesNot()
+    {
+        ProgressData data = new ProgressData();
+        ProgressSim.PlayCleanShow(data, ProgressSim.Day1, Archetype.Kid);
+        ShowOutcome again = ProgressSim.PlayCleanShow(data, ProgressSim.Day1, Archetype.Kid);
+        Assert.False(again.NewDay, "same day");
+        Assert.Equal(1, again.Streak);
+        Assert.Equal(1, data.DaysPlayed);
+        Assert.Equal(2, data.ShowsPlayed);
+
+        Assert.Equal(2, ProgressRules.DayNumber(data, ProgressSim.Day2), "about to be day 2");
+        Assert.Equal(1, ProgressRules.StreakOn(data, ProgressSim.Day2), "yesterday's streak is still alive");
+        ShowOutcome day2 = ProgressSim.PlayCleanShow(data, ProgressSim.Day2, Archetype.Kid);
+        Assert.True(day2.NewDay);
+        Assert.Equal(2, day2.DayNumber);
+        Assert.Equal(2, day2.Streak);
+        ShowOutcome day3 = ProgressSim.PlayCleanShow(data, ProgressSim.Day3, Archetype.Kid);
+        Assert.Equal(3, day3.Streak);
+        Assert.Equal(3, data.LongestStreak);
+        Assert.Equal(3, data.DaysPlayed);
+        Assert.Equal(ProgressSim.Day1, data.FirstPlayedDate);
+    }
+
+    [Test]
+    public static void AMissedDayStartsTheStreakAgainButKeepsTheLongest()
+    {
+        ProgressData data = new ProgressData();
+        ProgressSim.PlayCleanShow(data, ProgressSim.Day1, Archetype.Kid);
+        ProgressSim.PlayCleanShow(data, ProgressSim.Day2, Archetype.Kid);
+        ProgressSim.PlayCleanShow(data, ProgressSim.Day3, Archetype.Kid);
+        Assert.Equal(0, ProgressRules.StreakOn(data, 20261116), "two days missed: broken");
+        ShowOutcome late = ProgressSim.PlayCleanShow(data, 20261116, Archetype.Kid);
+        Assert.Equal(1, late.Streak, "starts again");
+        Assert.Equal(4, late.DayNumber, "the fourth day played");
+        Assert.Equal(3, data.LongestStreak, "longest kept");
+        Assert.Equal(1, data.CurrentStreak);
+        // Across a year end.
+        ProgressSim.PlayCleanShow(data, 20261231, Archetype.Kid);
+        ShowOutcome newYear = ProgressSim.PlayCleanShow(data, 20270101, Archetype.Kid);
+        Assert.Equal(2, newYear.Streak, "31 Dec then 1 Jan is a streak");
+    }
+
+    [Test]
+    public static void AWalkOffStillCountsAsPlayingToday()
+    {
+        ProgressData data = new ProgressData();
+        ProgressSim.PlayCleanShow(data, ProgressSim.Day1, Archetype.Kid);
+        DailyPlan plan = ProgressRules.PlanFor(data, ProgressSim.Day2);
+        ShowRecord record = new ShowRecord(plan.Acts);
+        record.AddBust(0, 0);
+        record.AddBust(0, 0);
+        record.AddBust(0, 0);
+        ShowOutcome o = ProgressRules.FinishShow(data, ProgressSim.Day2, plan.Challenge, record, ProgressSim.Summary(record, true, 0));
+        Assert.Equal(2, o.Streak, "turning up keeps the streak");
+        Assert.Equal(2, data.ShowsPlayed);
+        Assert.Equal(1, data.ShowsFinished, "but it wasn't a finished show");
+        Assert.False(o.ChallengePassedNow);
+        Assert.Equal(3, data.BestStars, "bests untouched");
+    }
+
+    [Test]
+    public static void AClockThatGoesBackwardsChangesNoDays()
+    {
+        ProgressData data = new ProgressData();
+        ProgressSim.PlayCleanShow(data, ProgressSim.Day2, Archetype.Kid);
+        ProgressSim.PlayCleanShow(data, ProgressSim.Day3, Archetype.Kid);
+        ShowOutcome back = ProgressSim.PlayCleanShow(data, ProgressSim.Day1, Archetype.Kid);
+        Assert.False(back.NewDay);
+        Assert.Equal(2, data.DaysPlayed);
+        Assert.Equal(2, data.CurrentStreak);
+        Assert.Equal(ProgressSim.Day3, data.LastPlayedDate, "the last day played doesn't move back");
+        Assert.Equal(3, data.ShowsPlayed, "the show still counts");
+
+        // No usable date at all: the show counts, the calendar doesn't.
+        ProgressData undated = new ProgressData();
+        ShowAct[] acts = ProgressSim.ClassicActs();
+        ShowRecord record = ProgressSim.CleanShow(acts, Archetype.Kid);
+        ShowOutcome o = ProgressRules.FinishShow(undated, 0, new DailyChallenge(ChallengeKind.NoBusts, 0), record, ProgressSim.Summary(record));
+        Assert.Equal(1, undated.ShowsPlayed);
+        Assert.Equal(0, undated.DaysPlayed);
+        Assert.Equal(0, undated.Challenges.Length, "no date, no history entry");
+        Assert.True(o.ChallengePassedNow);
+        Assert.True(o.ChallengePassedToday);
+    }
+
+    [Test]
+    public static void BestsOnlyGoUpAndSayWhenTheyAreBeaten()
+    {
+        ProgressData data = new ProgressData();
+        ShowAct[] acts = ProgressSim.ClassicActs();
+        var challenge = new DailyChallenge(ChallengeKind.NoBusts, 0);
+
+        // A modest first show: one clean act, then two busts.
+        ShowRecord modest = new ShowRecord(acts);
+        ProgressSim.CleanAct(modest, acts, 0, Archetype.Kid);
+        modest.AddBust(1, 1);
+        modest.AddBust(1, 1);
+        ProgressSim.CleanAct(modest, acts, 1, Archetype.Kid);
+        ProgressSim.CleanAct(modest, acts, 2, Archetype.Kid);
+        ShowSummary modestSummary = ProgressSim.Summary(modest);
+        modestSummary.Tips = 40;
+        ProgressRules.FinishShow(data, ProgressSim.Day1, challenge, modest, modestSummary);
+        Assert.Equal(40, data.BestTips);
+        Assert.Equal(1, data.BestStars, "two busts: one star");
+
+        ShowRecord clean = ProgressSim.CleanShow(acts, Archetype.Kid);
+        ShowSummary cleanSummary = ProgressSim.Summary(clean);
+        ShowOutcome better = ProgressRules.FinishShow(data, ProgressSim.Day1, challenge, clean, cleanSummary);
+        Assert.True(better.NewBestTips, "new best tips");
+        Assert.True(better.NewBestStars, "new best stars");
+        Assert.Equal(cleanSummary.Tips, data.BestTips);
+        Assert.Equal(3, data.BestStars);
+        Assert.Equal(40 + cleanSummary.Tips, data.TotalTips);
+
+        ShowOutcome worse = ProgressRules.FinishShow(data, ProgressSim.Day1, challenge, modest, modestSummary);
+        Assert.False(worse.NewBestTips);
+        Assert.Equal(cleanSummary.Tips, data.BestTips, "a worse show doesn't lower the best");
+        Assert.Equal(3, data.BestStars);
+    }
+
+    [Test]
+    public static void DayTwoVisiblyDiffersFromDayOne()
+    {
+        ProgressData data = new ProgressData();
+        DailyPlan day1 = ProgressRules.PlanFor(data, ProgressSim.Day1);
+        Assert.False(day1.RegularReturns, "day one: no Regular");
+        Assert.Equal(0, ProgressSim.Count(day1.Acts[2].Crowd, Archetype.Regular));
+        ProgressSim.PlayCleanShow(data, ProgressSim.Day1, Archetype.Kid);
+
+        // Later the same day: still day one's show.
+        DailyPlan again = ProgressRules.PlanFor(data, ProgressSim.Day1);
+        Assert.True(ProgressSim.SameShow(day1, again), "same day, same show");
+        Assert.Equal(day1.Challenge.Kind, again.Challenge.Kind);
+
+        // The next day: the Regular is back, the line-up and the challenge are new, and it says "Day 2".
+        Assert.True(ProgressRules.IsReturning(data, ProgressSim.Day2));
+        DailyPlan day2 = ProgressRules.PlanFor(data, ProgressSim.Day2);
+        Assert.True(day2.RegularReturns, "day two: the Regular returns");
+        Assert.Equal(1, ProgressSim.Count(day2.Acts[2].Crowd, Archetype.Regular));
+        Assert.False(ProgressSim.SameShow(day1, day2), "a different crowd");
+        Assert.False(day1.Challenge.Kind == day2.Challenge.Kind, "a different challenge");
+        Assert.Equal(2, ProgressRules.DayNumber(data, ProgressSim.Day2));
+        Assert.False(ProgressText.CrowdLine(day1.Acts) == ProgressText.CrowdLine(day2.Acts), "the banner reads differently");
+
+        // And he remembers day one: the same ear again is "Same as yesterday!".
+        Assert.Equal(RegularReaction.SameAgain, RegularRule.OnProduce(data.Regular, Archetype.Kid));
+        Assert.Equal("Same as yesterday!", RegularRule.Line(RegularReaction.SameAgain, data.Regular, ProgressSim.Day2));
+        ProgressSim.PlayCleanShow(data, ProgressSim.Day2, Archetype.Kid);
+        Assert.True(RegularRule.AttitudeFor(data.Regular, ProgressSim.Vanish).Wary, "day three: he walks in wary");
+    }
+
+    [Test]
+    public static void AShowFillsInTheTrickBook()
+    {
+        ProgressData data = new ProgressData();
+        ShowAct[] acts = ProgressSim.ClassicActs();
+        ShowRecord record = ProgressSim.CleanShow(acts, Archetype.Kid);
+        ShowOutcome o = ProgressRules.FinishShow(data, ProgressSim.Day1, new DailyChallenge(ChallengeKind.NoBusts, 0), record, ProgressSim.Summary(record));
+        Assert.Equal(2, o.StarsGained.Length);
+        Assert.Equal(3, o.StarsGained[0]);
+        Assert.Equal(3, o.StarsGained[1]);
+        Assert.Equal(3, data.Tricks[0].Stars);
+        ShowOutcome second = ProgressRules.FinishShow(data, ProgressSim.Day1, new DailyChallenge(ChallengeKind.NoBusts, 0), record, ProgressSim.Summary(record));
+        Assert.Equal(0, second.StarsGained[0], "nothing new the second time");
+        Assert.Equal(1, data.Regular.Repeats, "and the Regular has now seen it twice");
+    }
+
+    [Test]
+    public static void TheChallengeStaysPassedForTheDayAndHistoryKeepsTwoWeeks()
+    {
+        ProgressData data = new ProgressData();
+        ShowAct[] acts = ProgressSim.ClassicActs();
+        var challenge = new DailyChallenge(ChallengeKind.NoBusts, 0);
+        ShowRecord clean = ProgressSim.CleanShow(acts, Archetype.Kid);
+        ShowRecord busted = ProgressSim.CleanShow(acts, Archetype.Kid);
+        busted.AddBust(2, 0);
+
+        ShowOutcome miss = ProgressRules.FinishShow(data, ProgressSim.Day1, challenge, busted, ProgressSim.Summary(busted));
+        Assert.False(miss.ChallengePassedToday);
+        Assert.False(ProgressRules.ChallengePassedOn(data, ProgressSim.Day1));
+        ShowOutcome hit = ProgressRules.FinishShow(data, ProgressSim.Day1, challenge, clean, ProgressSim.Summary(clean));
+        Assert.True(hit.ChallengePassedNow);
+        Assert.True(ProgressRules.ChallengePassedOn(data, ProgressSim.Day1));
+        ShowOutcome missAgain = ProgressRules.FinishShow(data, ProgressSim.Day1, challenge, busted, ProgressSim.Summary(busted));
+        Assert.False(missAgain.ChallengePassedNow, "this show missed it");
+        Assert.True(missAgain.ChallengePassedToday, "but it was already met today");
+        Assert.Equal(1, data.Challenges.Length, "one entry per day");
+
+        // Twenty more days, missing the challenge on odd ones.
+        for (int i = 1; i <= 20; i++)
+        {
+            int day = CalendarDay.AddDays(ProgressSim.Day1, i);
+            ShowRecord record = i % 2 == 0 ? clean : busted;
+            ProgressRules.FinishShow(data, day, challenge, record, ProgressSim.Summary(record));
+        }
+        Assert.Equal(ProgressData.HistoryDays, data.Challenges.Length, "two weeks kept");
+        Assert.Equal(CalendarDay.AddDays(ProgressSim.Day1, 20), data.Challenges[data.Challenges.Length - 1].Date, "newest last");
+        Assert.Equal(CalendarDay.AddDays(ProgressSim.Day1, 7), data.Challenges[0].Date, "oldest first");
+        Assert.True(ProgressRules.ChallengePassedOn(data, CalendarDay.AddDays(ProgressSim.Day1, 20)));
+        Assert.False(ProgressRules.ChallengePassedOn(data, CalendarDay.AddDays(ProgressSim.Day1, 19)));
+        Assert.False(ProgressRules.ChallengePassedOn(data, ProgressSim.Day1), "day one has dropped off the history");
+        Assert.Equal(21, data.CurrentStreak);
+    }
+}
+
+public static class ProgressSaveTests
+{
+    [Test]
+    public static void NothingLoadedIsAFreshSave()
+    {
+        ProgressData data = ProgressSave.Upgrade(null);
+        Assert.Equal(ProgressData.CurrentVersion, data.Version);
+        Assert.Equal(0, data.ShowsPlayed);
+        Assert.Equal(0, data.DaysPlayed);
+        Assert.Equal(TrickBook.TrickCount, data.Tricks.Length);
+        Assert.Equal(0, data.Tricks[0].Stars);
+        Assert.Equal(0, data.Challenges.Length);
+        Assert.False(data.Regular.HasSignature);
+        Assert.False(ProgressRules.IsReturning(data, ProgressSim.Day1));
+    }
+
+    [Test]
+    public static void BrokenValuesAreRepaired()
+    {
+        ProgressData data = new ProgressData();
+        data.ShowsPlayed = -4;
+        data.ShowsFinished = 9;
+        data.BestTips = -1;
+        data.BestStars = 17;
+        data.DaysPlayed = 2;
+        data.FirstPlayedDate = 20269999;
+        data.LastPlayedDate = ProgressSim.Day2;
+        data.CurrentStreak = 40;
+        data.LongestStreak = -2;
+        data.Tricks = null;
+        data.Challenges = new[]
+        {
+            null,
+            new ChallengeResult { Date = ProgressSim.Day2, Kind = 1, Passed = false },
+            new ChallengeResult { Date = 20261340, Kind = 2, Passed = true },
+            new ChallengeResult { Date = ProgressSim.Day1, Kind = 0, Passed = true },
+            new ChallengeResult { Date = ProgressSim.Day2, Kind = 1, Passed = true },
+        };
+        data.Regular = null;
+
+        ProgressData fixedUp = ProgressSave.Upgrade(data);
+        Assert.Equal(2, fixedUp.ShowsPlayed, "at least one show per day played");
+        Assert.Equal(2, fixedUp.ShowsFinished, "no more bows than shows");
+        Assert.Equal(0, fixedUp.BestTips);
+        Assert.Equal(3, fixedUp.BestStars);
+        Assert.Equal(ProgressSim.Day2, fixedUp.FirstPlayedDate, "an unreadable first date falls back to the last");
+        Assert.Equal(2, fixedUp.CurrentStreak, "a streak can't be longer than the days played");
+        Assert.Equal(2, fixedUp.LongestStreak);
+        Assert.Equal(2, fixedUp.Tricks.Length);
+        Assert.True(fixedUp.Tricks[0] != null && fixedUp.Tricks[1] != null, "trick entries");
+        Assert.Equal(2, fixedUp.Challenges.Length, "null, invalid and duplicate entries dropped");
+        Assert.Equal(ProgressSim.Day1, fixedUp.Challenges[0].Date, "oldest first");
+        Assert.True(fixedUp.Challenges[1].Passed, "a day passed once stays passed");
+        Assert.True(fixedUp.Regular != null && !fixedUp.Regular.HasSignature, "empty memory");
+
+        // Never played but with leftovers: back to a clean slate.
+        ProgressData leftovers = new ProgressData { DaysPlayed = 5, CurrentStreak = 3, LongestStreak = 9, LastPlayedDate = -1 };
+        leftovers.Regular = new RegularMemory { Date = ProgressSim.Day1, ProducedFrom = 42, Repeats = -3 };
+        leftovers.Tricks = new TrickMastery[] { null };
+        ProgressSave.Upgrade(leftovers);
+        Assert.Equal(0, leftovers.DaysPlayed);
+        Assert.Equal(0, leftovers.CurrentStreak);
+        Assert.Equal(0, leftovers.LongestStreak);
+        Assert.Equal(0, leftovers.LastPlayedDate);
+        Assert.False(leftovers.Regular.HasSignature, "an archetype that doesn't exist is forgotten");
+        Assert.Equal(2, leftovers.Tricks.Length);
+        Assert.True(leftovers.Tricks[0] != null, "null trick entry replaced");
+    }
+
+    [Test]
+    public static void OlderAndNewerVersionsBothLoad()
+    {
+        // From before the version field existed.
+        ProgressData old = new ProgressData { Version = 0, ShowsPlayed = 3, DaysPlayed = 2, LastPlayedDate = ProgressSim.Day2, CurrentStreak = 2 };
+        Assert.False(ProgressSave.IsFromNewerBuild(old));
+        ProgressSave.Upgrade(old);
+        Assert.Equal(ProgressData.CurrentVersion, old.Version);
+        Assert.Equal(3, old.ShowsPlayed);
+        Assert.Equal(2, old.CurrentStreak);
+
+        // From a newer build with a third trick: what this build understands is kept, nothing is thrown away.
+        ProgressData newer = new ProgressData { Version = ProgressData.CurrentVersion + 5, BestTips = 77, LastPlayedDate = ProgressSim.Day1, DaysPlayed = 1 };
+        newer.Tricks = new[] { new TrickMastery { Clean = true }, new TrickMastery(), new TrickMastery { Clean = true, Ovation = true } };
+        newer.Challenges = new[] { new ChallengeResult { Date = ProgressSim.Day1, Kind = 99, Passed = true } };
+        Assert.True(ProgressSave.IsFromNewerBuild(newer));
+        ProgressSave.Upgrade(newer);
+        Assert.Equal(ProgressData.CurrentVersion, newer.Version, "written back in this build's format");
+        Assert.Equal(77, newer.BestTips);
+        Assert.Equal(3, newer.Tricks.Length, "the unknown trick's stars are kept");
+        Assert.Equal(2, newer.Tricks[2].Stars);
+        Assert.Equal(99, newer.Challenges[0].Kind, "an unknown challenge kind survives");
+        Assert.False(ProgressSave.IsFromNewerBuild(null));
+    }
+
+    [Test]
+    public static void MergeKeepsEverythingEarnedInEitherCopy()
+    {
+        // The file: played up to day 3. The backup: one save older, but (say) with a star the file lost.
+        ProgressData file = new ProgressData
+        {
+            ShowsPlayed = 8, ShowsFinished = 6, BestTips = 90, BestStars = 2, TotalTips = 300, DaysPlayed = 6,
+            FirstPlayedDate = 20261103, LastPlayedDate = ProgressSim.Day3, CurrentStreak = 3, LongestStreak = 3,
+        };
+        file.Tricks[0].Clean = true;
+        file.Tricks[0].Performances = 6;
+        file.Challenges = new[]
+        {
+            new ChallengeResult { Date = ProgressSim.Day2, Kind = 1, Passed = false },
+            new ChallengeResult { Date = ProgressSim.Day3, Kind = 2, Passed = true },
+        };
+        file.Regular = new RegularMemory { Date = ProgressSim.Day3, ProducedFrom = (int)Archetype.Kid, EndTrick = 0, Repeats = 2 };
+
+        ProgressData backup = new ProgressData
+        {
+            ShowsPlayed = 7, ShowsFinished = 7, BestTips = 110, BestStars = 3, TotalTips = 260, DaysPlayed = 5,
+            FirstPlayedDate = 20261101, LastPlayedDate = ProgressSim.Day2, CurrentStreak = 2, LongestStreak = 4,
+        };
+        backup.Tricks[0].Ovation = true;
+        backup.Tricks[1].Clean = true;
+        backup.Tricks[0].Performances = 4;
+        backup.Challenges = new[]
+        {
+            new ChallengeResult { Date = ProgressSim.Day1, Kind = 0, Passed = true },
+            new ChallengeResult { Date = ProgressSim.Day2, Kind = 1, Passed = true },
+        };
+        backup.Regular = new RegularMemory { Date = ProgressSim.Day2, ProducedFrom = (int)Archetype.Skeptic, EndTrick = 0, Repeats = 0 };
+
+        foreach (bool swapped in new[] { false, true })
+        {
+            ProgressData m = swapped ? ProgressSave.Merge(backup, file) : ProgressSave.Merge(file, backup);
+            string order = swapped ? " (backup first)" : " (file first)";
+            Assert.Equal(8, m.ShowsPlayed, "shows" + order);
+            Assert.Equal(7, m.ShowsFinished, "bows" + order);
+            Assert.Equal(110, m.BestTips, "best tips" + order);
+            Assert.Equal(3, m.BestStars, "best stars" + order);
+            Assert.Equal(300, m.TotalTips, "total tips" + order);
+            Assert.Equal(6, m.DaysPlayed, "days" + order);
+            Assert.Equal(20261101, m.FirstPlayedDate, "the earliest first day" + order);
+            Assert.Equal(ProgressSim.Day3, m.LastPlayedDate, "last day" + order);
+            Assert.Equal(3, m.CurrentStreak, "the streak of the copy played most recently" + order);
+            Assert.Equal(4, m.LongestStreak, "longest" + order);
+            Assert.Equal(2, m.Tricks[0].Stars, "vanish stars from both" + order);
+            Assert.Equal(1, m.Tricks[1].Stars, "cup star from the backup" + order);
+            Assert.Equal(6, m.Tricks[0].Performances, "performances" + order);
+            Assert.Equal(3, m.Challenges.Length, "one entry per day" + order);
+            Assert.True(m.Challenges[1].Passed, "day 2 was passed in the backup" + order);
+            Assert.Equal((int)Archetype.Kid, m.Regular.ProducedFrom, "the newer memory" + order);
+            Assert.Equal(2, m.Regular.Repeats, "the newer memory" + order);
+        }
+        Assert.Equal(false, file.Challenges[0].Passed, "merging doesn't change its inputs");
+        Assert.False(file.Tricks[0].Ovation, "merging doesn't change its inputs");
+    }
+
+    [Test]
+    public static void MergeCopesWithMissingCopies()
+    {
+        ProgressData only = new ProgressData { ShowsPlayed = 2, DaysPlayed = 1, LastPlayedDate = ProgressSim.Day1, CurrentStreak = 1, BestTips = 50 };
+        ProgressData a = ProgressSave.Merge(only, null);
+        ProgressData b = ProgressSave.Merge(null, only);
+        Assert.Equal(2, a.ShowsPlayed);
+        Assert.Equal(2, b.ShowsPlayed);
+        Assert.Equal(50, a.BestTips);
+        Assert.Equal(ProgressSim.Day1, b.LastPlayedDate);
+        ProgressData empty = ProgressSave.Merge(null, null);
+        Assert.Equal(0, empty.ShowsPlayed);
+        Assert.Equal(TrickBook.TrickCount, empty.Tricks.Length);
+    }
+}
+
+public static class ProgressTextTests
+{
+    [Test]
+    public static void TheCrowdLineNamesWhoStartsAndWhoJoins()
+    {
+        Assert.Equal("Tourist, Kid, Skeptic + Filmer + Regular", ProgressText.CrowdLine(ProgressSim.ClassicActs()));
+        // A second Kid joining in the middle of the arc is still named as the newcomer.
+        ShowAct[] acts =
+        {
+            new ShowAct(0, Archetype.Kid, Archetype.Tourist, Archetype.Filmer),
+            new ShowAct(1, Archetype.Kid, Archetype.Kid, Archetype.Tourist, Archetype.Filmer),
+            new ShowAct(0, Archetype.Skeptic, Archetype.Kid, Archetype.Kid, Archetype.Tourist, Archetype.Filmer),
+        };
+        Assert.Equal("Kid, Tourist, Filmer + Kid + Skeptic", ProgressText.CrowdLine(acts));
+        Assert.Equal("", ProgressText.CrowdLine(null));
+    }
+
+    [Test]
+    public static void ShortLinesForTheBannerAndTheBook()
+    {
+        Assert.Equal("Day 1", ProgressText.DayLine(0));
+        Assert.Equal("Day 12", ProgressText.DayLine(12));
+        Assert.Equal("Day 3 in a row", ProgressText.StreakLine(3));
+        Assert.Equal("Day 1: come back tomorrow", ProgressText.StreakLine(1));
+        var challenge = new DailyChallenge(ChallengeKind.TipTarget, 70);
+        Assert.Equal("Challenge: Finish with 70 tips or more - OK", ProgressText.ChallengeLine(challenge, true));
+        Assert.Equal("Challenge: Finish with 70 tips or more - not yet", ProgressText.ChallengeLine(challenge, false));
+        Assert.Equal("Challenge: OK", ProgressText.ChallengeVerdict(true));
+        Assert.Equal("Challenge: not yet", ProgressText.ChallengeVerdict(false));
+        Assert.Equal("Next: a reveal with no heckle", ProgressText.NextStarLine(new TrickMastery()));
+        Assert.Equal("Mastered", ProgressText.NextStarLine(new TrickMastery { Clean = true, Ovation = true, ToughCrowd = true }));
+        Assert.Equal("Best: 96 tips (new!)", ProgressText.BestLine(96, true));
+        Assert.Equal("Best: 96 tips", ProgressText.BestLine(96, false));
+        Assert.True(ProgressText.TomorrowLine(false).Contains("Regular"), "day one teases the Regular");
+        Assert.False(ProgressText.TomorrowLine(true).Contains("Regular"));
+    }
+
+    [Test]
+    public static void EveryLineIsShortPlainAscii()
+    {
+        // The default TextMesh Pro font has no ticks, stars or fancy punctuation.
+        var lines = new List<string>();
+        for (int i = 0; i < 60; i++)
+        {
+            int date = CalendarDay.AddDays(ProgressSim.Day1, i);
+            DailyPlan plan = DailyShow.Plan(date, i % 2 == 0);
+            lines.Add(plan.Challenge.Text);
+            lines.Add(ProgressText.CrowdLine(plan.Acts));
+            lines.Add(ProgressText.ChallengeLine(plan.Challenge, i % 3 == 0));
+        }
+        lines.Add(ProgressText.DayLine(365));
+        lines.Add(ProgressText.StreakLine(1));
+        lines.Add(ProgressText.StreakLine(100));
+        lines.Add(ProgressText.BestLine(144, true));
+        lines.Add(ProgressText.TomorrowLine(true));
+        lines.Add(ProgressText.TomorrowLine(false));
+        lines.Add(ProgressText.NextStarLine(new TrickMastery()));
+        lines.Add(ProgressText.NextStarLine(new TrickMastery { Clean = true }));
+        lines.Add(ProgressText.NextStarLine(new TrickMastery { Clean = true, Ovation = true }));
+        lines.Add(ProgressText.NextStarLine(new TrickMastery { Clean = true, Ovation = true, ToughCrowd = true }));
+        lines.Add(ProgressText.ChallengeVerdict(true));
+        lines.Add(ProgressText.ChallengeVerdict(false));
+        foreach (RegularReaction r in Enum.GetValues(typeof(RegularReaction)))
+        {
+            lines.Add(RegularRule.Line(r, new RegularMemory { Date = ProgressSim.Day1 }, ProgressSim.Day2));
+            lines.Add(RegularRule.Line(r, new RegularMemory { Date = ProgressSim.Day1 }, ProgressSim.Day3));
+        }
+        foreach (string line in lines)
+        {
+            Assert.True(line.Length <= 60, "too long for the table: " + line);
+            foreach (char c in line)
+            {
+                Assert.True(c >= ' ' && c <= '~', "not plain ASCII: '" + c + "' in: " + line);
+            }
+        }
     }
 }
