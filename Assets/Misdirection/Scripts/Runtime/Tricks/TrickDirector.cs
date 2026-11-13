@@ -71,6 +71,14 @@ namespace Misdirection.Tricks
         private AudioClip pickupTone, ditchTone, clinkTone, applause, gasp, heckle, sparkle;
         private SpikeCsvLog log;
         private bool hudVisible = true;
+        // What the HUD text was last built from (Day 12: rebuilt only when one of these changes).
+        private bool hudStale = true;
+        private string hudPrompt;
+        private int hudTips;
+        private string hudLastKind;
+        private Reaction hudLastReaction;
+        private int hudAmazement;
+        private int hudCrowdStamp;
 
         public VanishTrick Trick { get { return trick; } }
         public CoinActor Coin { get { return coin; } }
@@ -189,6 +197,7 @@ namespace Misdirection.Tricks
             {
                 coin.ShowDitched();
                 hud.text = "<b>Misdirection</b>\nRest both palms flat on the table, heels at the near edge, and hold still.";
+                hudStale = true;
                 PlaceHud(viewer);
                 return;
             }
@@ -468,10 +477,33 @@ namespace Misdirection.Tricks
 
         private void UpdateHud()
         {
-            string crowdLine = crowd != null && crowd.Spectators.Count > 0 ? "\n<size=55%>" + crowd.Summary() + "</size>" : "";
-            hud.text = "<b>" + trick.Prompt + "</b>\n<size=70%>Tips: " + trick.TotalTips +
-                       (trick.LastReveal.Kind != null ? "   Last: " + trick.LastReveal.Reaction + " (" +
-                        Mathf.RoundToInt(trick.LastReveal.Amazement * 100f) + "%)" : "") + "</size>" + crowdLine;
+            // Day 12: this built several strings every frame. Now only while the HUD shows, and only
+            // when something it shows has changed.
+            if (!hud.gameObject.activeSelf)
+            {
+                return;
+            }
+            bool hasCrowd = crowd != null && crowd.Spectators.Count > 0;
+            int crowdStamp = hasCrowd ? crowd.SummaryStamp() : 0;
+            string prompt = trick.Prompt;
+            RevealResult last = trick.LastReveal;
+            int amazement = Mathf.RoundToInt(last.Amazement * 100f);
+            if (!hudStale && prompt == hudPrompt && trick.TotalTips == hudTips && last.Kind == hudLastKind &&
+                last.Reaction == hudLastReaction && amazement == hudAmazement && crowdStamp == hudCrowdStamp)
+            {
+                return;
+            }
+            hudStale = false;
+            hudPrompt = prompt;
+            hudTips = trick.TotalTips;
+            hudLastKind = last.Kind;
+            hudLastReaction = last.Reaction;
+            hudAmazement = amazement;
+            hudCrowdStamp = crowdStamp;
+
+            string crowdLine = hasCrowd ? "\n<size=55%>" + crowd.Summary() + "</size>" : "";
+            hud.text = "<b>" + prompt + "</b>\n<size=70%>Tips: " + trick.TotalTips +
+                       (last.Kind != null ? "   Last: " + last.Reaction + " (" + amazement + "%)" : "") + "</size>" + crowdLine;
         }
 
         private void PlaceHud(Vector3 viewer)
@@ -538,10 +570,11 @@ namespace Misdirection.Tricks
             {
                 return 0f;
             }
+            // Indexed: foreach over the read-only list allocates an enumerator every frame.
             float sum = 0f;
-            foreach (Spectator s in crowd.Spectators)
+            for (int i = 0; i < crowd.Spectators.Count; i++)
             {
-                sum += s.Mind.Suspicion;
+                sum += crowd.Spectators[i].Mind.Suspicion;
             }
             return sum / crowd.Spectators.Count;
         }

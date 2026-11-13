@@ -55,6 +55,9 @@ namespace Misdirection.Audience
         private Vector3 secretPoint;
         private bool hasSecret;
         private Transform gazeDot;
+        private readonly StringBuilder summaryBuilder = new StringBuilder(128);
+        private string summaryText;
+        private int summaryStamp;
 
         public CrowdModel Model { get { return model; } }
 
@@ -168,7 +171,15 @@ namespace Misdirection.Audience
         /// <summary>One line per spectator for HUDs: focus and suspicion.</summary>
         public string Summary()
         {
-            StringBuilder sb = new StringBuilder();
+            // Day 12: HUDs ask every frame. Rebuild the text only when it would read differently.
+            int stamp = SummaryStamp();
+            if (stamp == summaryStamp && summaryText != null)
+            {
+                return summaryText;
+            }
+            summaryStamp = stamp;
+            StringBuilder sb = summaryBuilder;
+            sb.Length = 0;
             foreach (Spectator s in spectators)
             {
                 SpectatorMind m = s.Mind;
@@ -179,7 +190,25 @@ namespace Misdirection.Audience
                 sb.Append(m.Profile.Archetype).Append(": ").Append(FocusWord(m)).Append(' ')
                   .Append(Mathf.RoundToInt(m.Suspicion * 100f)).Append('%');
             }
-            return sb.ToString();
+            summaryText = sb.ToString();
+            return summaryText;
+        }
+
+        /// <summary>
+        /// A number that changes whenever <see cref="Summary"/> would read differently (who is here, each
+        /// focus, each whole percent of suspicion). Costs no memory, so HUDs can check it every frame.
+        /// </summary>
+        public int SummaryStamp()
+        {
+            int stamp = 17 + spectators.Count;
+            for (int i = 0; i < spectators.Count; i++)
+            {
+                SpectatorMind m = spectators[i].Mind;
+                stamp = stamp * 31 + (int)m.Profile.Archetype;
+                stamp = stamp * 31 + (int)m.Focus;
+                stamp = stamp * 31 + Mathf.RoundToInt(m.Suspicion * 100f);
+            }
+            return stamp;
         }
 
         private void Awake()
@@ -379,17 +408,21 @@ namespace Misdirection.Audience
 
         private Vector3 HandsCenter()
         {
+            // Day 12: no temporary array (this runs every frame).
             Vector3 sum = Vector3.zero;
             int n = 0;
-            foreach (TrackedHand hand in new[] { leftHand, rightHand })
-            {
-                if (hand != null && hand.Presence != null && hand.Presence.HasPose)
-                {
-                    sum += hand.StablePalm.position;
-                    n++;
-                }
-            }
+            AddPalm(leftHand, ref sum, ref n);
+            AddPalm(rightHand, ref sum, ref n);
             return n > 0 ? sum / n : Stage();
+        }
+
+        private static void AddPalm(TrackedHand hand, ref Vector3 sum, ref int n)
+        {
+            if (hand != null && hand.Presence != null && hand.Presence.HasPose)
+            {
+                sum += hand.StablePalm.position;
+                n++;
+            }
         }
 
         private Vector3 Stage()

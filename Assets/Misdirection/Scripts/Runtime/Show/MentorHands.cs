@@ -395,13 +395,18 @@ namespace Misdirection.Show
         public void Place(Vector3 wrist, Quaternion rotation, HandPose pose)
         {
             root.SetPositionAndRotation(wrist, rotation);
-            float[] curls = { pose.Index, pose.Middle, pose.Ring, pose.Pinky };
-            for (int i = 0; i < 4; i++)
-            {
-                fingers[i].localRotation = Quaternion.Euler(curls[i], baseYaw[i] * pose.Spread * 0.6f, 0f);
-            }
+            // Day 12: no temporary array (this runs every frame while a ghost hand shows).
+            Curl(0, pose.Index, pose.Spread);
+            Curl(1, pose.Middle, pose.Spread);
+            Curl(2, pose.Ring, pose.Spread);
+            Curl(3, pose.Pinky, pose.Spread);
             // Thumb points forward and out; curling swings it under the index.
             thumb.localRotation = Quaternion.Euler(pose.Thumb * 0.6f, side * (40f - pose.Thumb * 0.6f), 0f);
+        }
+
+        private void Curl(int finger, float curl, float spread)
+        {
+            fingers[finger].localRotation = Quaternion.Euler(curl, baseYaw[finger] * spread * 0.6f, 0f);
         }
 
         private static void Capsule(Transform pivot, float length, float radius, Material material)

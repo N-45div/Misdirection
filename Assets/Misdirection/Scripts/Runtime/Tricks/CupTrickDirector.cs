@@ -399,10 +399,11 @@ namespace Misdirection.Tricks
             {
                 return 0f;
             }
+            // Indexed: foreach over the read-only list allocates an enumerator every frame.
             float sum = 0f;
-            foreach (Spectator s in crowd.Spectators)
+            for (int i = 0; i < crowd.Spectators.Count; i++)
             {
-                sum += s.Mind.Suspicion;
+                sum += crowd.Spectators[i].Mind.Suspicion;
             }
             return sum / crowd.Spectators.Count;
         }
