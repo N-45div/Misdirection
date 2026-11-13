@@ -51,6 +51,9 @@ namespace Misdirection.Show
         private bool hasCoin;
         private Vector3 lookWorld;
         private bool hasLook;
+        // Day 12 (FoV-aware): the caption eases into view when the player looks away from the ghost hands.
+        // Its zone is 6 degrees larger than the prompt's and banner's, so it settles clear of them.
+        private readonly ComfortAnchor captionComfort = new ComfortAnchor(6f);
 
         public MentorDemo Demo { get { return demo; } }
 
@@ -241,7 +244,13 @@ namespace Misdirection.Show
                 }
             }
 
-            caption.gameObject.SetActive(captions && caption.text.Length > 0);
+            bool showCaption = captions && caption.text.Length > 0;
+            caption.gameObject.SetActive(showCaption);
+            if (showCaption)
+            {
+                float floor = table != null && table.Calibrated ? table.Frame.Origin.Y + UiAnchors.TableClearance : float.NegativeInfinity;
+                captionAt = captionComfort.Place(captionAt, head, floor);
+            }
             caption.transform.position = captionAt;
             WorldText.Face(caption.transform, head.position);
         }

@@ -42,15 +42,22 @@ namespace Misdirection.Core.View
     public sealed class ComfortFollow
     {
         private readonly ComfortSettings settings;
+        private readonly float margin;
         private Vector3 goal;
         private Vector3 lastHome;
         private double outFor;
         private bool started;
         private bool attached;
 
-        public ComfortFollow(ComfortSettings settings = null)
+        /// <param name="settings">The zone, delay and speed (shared between elements; read every update).</param>
+        /// <param name="marginDegrees">
+        /// Extra degrees on every side of the zone for this element. Elements with different margins come to
+        /// rest at different distances from the view centre, so two of them never land on the same spot.
+        /// </param>
+        public ComfortFollow(ComfortSettings settings = null, float marginDegrees = 0f)
         {
             this.settings = settings ?? new ComfortSettings();
+            margin = marginDegrees;
         }
 
         /// <summary>Where to draw the element now.</summary>
@@ -74,7 +81,7 @@ namespace Misdirection.Core.View
         /// </summary>
         public Vector3 Update(Vector3 eye, Vector3 forward, Vector3 home, float dt)
         {
-            FieldOfView comfort = new FieldOfView(settings.HorizontalDegrees, settings.VerticalDegrees);
+            FieldOfView comfort = new FieldOfView(settings.HorizontalDegrees, settings.VerticalDegrees).Grown(margin);
             if (started && Vector3.DistanceSquared(home, lastHome) > settings.JumpMetres * settings.JumpMetres)
             {
                 // The home is somewhere else altogether: start again there.

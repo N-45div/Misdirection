@@ -71,6 +71,9 @@ namespace Misdirection.Tricks
         private AudioClip pickupTone, ditchTone, clinkTone, applause, gasp, heckle, sparkle;
         private SpikeCsvLog log;
         private bool hudVisible = true;
+        // Day 12 (FoV-aware): the floating reaction eases into view when the player looks away (the
+        // prompt does too, together with the show's banner: ComfortAnchor.TableOffset).
+        private readonly ComfortAnchor reactionComfort = new ComfortAnchor();
         // What the HUD text was last built from (Day 12: rebuilt only when one of these changes).
         private bool hudStale = true;
         private string hudPrompt;
@@ -511,7 +514,7 @@ namespace Misdirection.Tricks
             Vector3 pos;
             if (table.Calibrated)
             {
-                pos = table.Frame.ToWorld(new NVector3(0f, 0.16f, 0.62f)).ToUnity();
+                pos = table.Frame.ToWorld(UiAnchors.TrickHud).ToUnity() + ComfortAnchor.TableOffset(table.Frame, Head());
             }
             else
             {
@@ -541,7 +544,7 @@ namespace Misdirection.Tricks
                 return;
             }
             float rise = (float)(2.5 - (reactionUntil - now)) * 0.04f;
-            reactionText.transform.position = reactionAnchor + Vector3.up * rise;
+            reactionText.transform.position = reactionComfort.Place(reactionAnchor + Vector3.up * rise, Head());
             WorldText.Face(reactionText.transform, viewer);
         }
 
@@ -597,6 +600,12 @@ namespace Misdirection.Tricks
         private Vector3 Viewer()
         {
             return lookSource != null && lookSource.Head != null ? lookSource.Head.position : Vector3.up * 1.2f;
+        }
+
+        /// <summary>The headset (the centre of the display's field of view), or null.</summary>
+        private Transform Head()
+        {
+            return lookSource != null ? lookSource.Head : null;
         }
 
         private void Log(double now, string evt, string detail, RevealResult? r)

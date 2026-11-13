@@ -33,6 +33,9 @@ namespace Misdirection.Tricks
         private Vector3 reactionAnchor;
         private SpikeCsvLog log;
         private bool writeCsv;
+        // Day 12 (FoV-aware): the floating reaction eases into view when the player looks away (the
+        // prompt does too, together with the show's banner: ComfortAnchor.TableOffset).
+        private readonly ComfortAnchor reactionComfort = new ComfortAnchor();
         // What the prompt text was last built from (Day 12: rebuilt only when one of these changes).
         private bool promptStale = true;
         private string shownPrompt;
@@ -171,7 +174,7 @@ namespace Misdirection.Tricks
             Vector3 pos;
             if (table != null && table.Calibrated)
             {
-                pos = table.Frame.ToWorld(new NVector3(0f, 0.16f, 0.62f)).ToUnity();
+                pos = table.Frame.ToWorld(UiAnchors.TrickHud).ToUnity() + ComfortAnchor.TableOffset(table.Frame, viewer, viewerForward);
             }
             else
             {
@@ -186,7 +189,8 @@ namespace Misdirection.Tricks
             reaction.gameObject.SetActive(visible);
             if (visible)
             {
-                reaction.transform.position = reactionAnchor + Vector3.up * (float)(now - reactionStart) * 0.04f;
+                Vector3 home = reactionAnchor + Vector3.up * (float)(now - reactionStart) * 0.04f;
+                reaction.transform.position = reactionComfort.Place(home, viewer, viewerForward);
                 WorldText.Face(reaction.transform, viewer);
             }
         }

@@ -511,9 +511,13 @@ namespace Misdirection.Show
             bool visible = now < bannerUntil && table != null && table.Calibrated;
             banner.gameObject.SetActive(visible);
             Vector3 viewer = lookSource != null && lookSource.Head != null ? lookSource.Head.position : Vector3.up * 1.2f;
+            // Day 12 (FoV-aware): when the player looks away, the banner and stars ease into view together
+            // with the trick prompt, keeping their arrangement.
+            Vector3 nudge = Vector3.zero;
             if (visible)
             {
-                banner.transform.position = table.Frame.ToWorld(new NVector3(0f, 0.32f, 0.55f)).ToUnity();
+                nudge = ComfortAnchor.TableOffset(table.Frame, lookSource != null ? lookSource.Head : null);
+                banner.transform.position = table.Frame.ToWorld(UiAnchors.ShowBanner).ToUnity() + nudge;
                 WorldText.Face(banner.transform, viewer);
             }
             if (table != null && table.Calibrated)
@@ -521,7 +525,7 @@ namespace Misdirection.Show
                 for (int i = 0; i < stars.Count; i++)
                 {
                     Transform s = stars[i].transform;
-                    s.position = table.Frame.ToWorld(new NVector3((i - 1) * 0.07f, 0.22f, 0.55f)).ToUnity();
+                    s.position = table.Frame.ToWorld(new NVector3((i - 1) * 0.07f, 0.22f, 0.55f)).ToUnity() + nudge;
                     Vector3 toViewer = viewer - s.position;
                     if (toViewer.sqrMagnitude > 1e-6f)
                     {

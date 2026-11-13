@@ -310,6 +310,26 @@ public static class ComfortFollowTests
     }
 
     [Test]
+    public static void AMarginKeepsTwoElementsApart()
+    {
+        // The prompt and a caption below it both follow the view up; the caption's wider zone keeps it lower.
+        ComfortFollow prompt = new ComfortFollow();
+        ComfortFollow caption = new ComfortFollow(null, 6f);
+        Vector3 captionHome = ViewConeTests.At(0f, -25f, 0.6f);
+        Vector3 away = Look(0f, 13f);
+        Run(prompt, Look(0f, -17.5f), Hud, 0.5);
+        Run(caption, Look(0f, -17.5f), captionHome, 0.5);
+        Vector3 p = Run(prompt, away, Hud, 3.0);
+        Vector3 c = Run(caption, away, captionHome, 3.0);
+        float yaw, promptPitch, captionPitch;
+        ViewCone.Angles(Eye, away, Vector3.UnitY, p, out yaw, out promptPitch);
+        ViewCone.Angles(Eye, away, Vector3.UnitY, c, out yaw, out captionPitch);
+        Assert.Near(-20, promptPitch, 0.3, "prompt on the zone's lower edge");
+        Assert.Near(-26, captionPitch, 0.3, "caption six degrees lower");
+        Assert.True(ViewCone.Contains(Eye, away, FieldOfView.Glasses, c), "still inside the glasses' field of view");
+    }
+
+    [Test]
     public static void SettingsChangeTheZone()
     {
         ComfortSettings wide = new ComfortSettings();
