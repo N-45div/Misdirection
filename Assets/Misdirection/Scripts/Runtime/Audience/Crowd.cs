@@ -158,12 +158,16 @@ namespace Misdirection.Audience
             {
                 spectators[i].React(reaction, i == seenBy);
             }
+            // Day 11 access hook: captions for the crowd's sounds.
+            SoundCaptions.CrowdReacted(this, reaction, seenBy);
         }
 
         /// <summary>A sound at <paramref name="point"/> draws eyes (a coin clink, "Look!").</summary>
         public void MakeSound(Vector3 point, float strength = 1f)
         {
             model.Sound(Time.timeAsDouble, point.ToNumerics(), strength);
+            // Day 11 access hook: caption the sound where it happened.
+            SoundCaptions.SoundMade(point);
         }
 
         public string NameOf(int index)
