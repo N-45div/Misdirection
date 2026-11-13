@@ -96,7 +96,7 @@ Other menu items: **Misdirection → Day 11 → Reset Access Settings** (back to
 - `Assets/Plugins/Android/AndroidManifest.xml` now has `SkipPermissionsDialog = true`, `RECORD_AUDIO`, and the microphone as an optional feature. Nothing else changed: hand tracking, anchors, scene and eye tracking are all still declared.
 - The setting is kept right three ways: the bootstrap fixes it after Meta's Fix All, every Android build fixes it before building (`AccessManifestGuard`), and a unit test fails if the committed manifest loses it.
 - **Still asked at startup, as before:** the room scan's spatial-data permission (`USE_SCENE`). `OVRManager` asks for it (*Request Scene Permission On Startup* is ticked in Show.unity) and so does MRUK; that didn't change.
-- **No longer asked by anyone:** eye tracking. It was only ever asked for by Unity's automatic dialog. On a headset with eye tracking (Quest Pro) the game now stays on head direction until something asks for `EYE_TRACKING`. Quest 3 and 3S have no eye tracking, so nothing changes there. See the open risks in the hand-over notes.
+- **No longer asked by anyone:** eye tracking. It was only ever asked for by Unity's automatic dialog. On a headset with eye tracking (Quest Pro) the game now stays on head direction until something asks for `EYE_TRACKING`. Quest 3 and 3S have no eye tracking, so nothing changes there. If eye gaze on such a headset is wanted, either tick *Request Eye Tracking Permission On Startup* on the scene's `OVRManager` (one startup prompt, on those headsets only) or ask for it from `LookSource` the first time the player looks at a spectator. **Decision needed.**
 
 ## Check in the simulator · ~40 min
 
