@@ -1,3 +1,4 @@
+using Misdirection.Access;
 using Misdirection.Table;
 using TMPro;
 using UnityEngine;
@@ -8,7 +9,7 @@ namespace Misdirection.Show
     public enum MentorDemo
     {
         None,
-        /// <summary>Both hands lower and rest palms-down on the table (calibration).</summary>
+        /// <summary>Both hands (one, for a one-handed player) lower and rest palms-down on the table (calibration).</summary>
         PalmsOnTable,
         /// <summary>One hand reaches for the coin and pinches it.</summary>
         PickUp,
@@ -20,7 +21,7 @@ namespace Misdirection.Show
         Ditch,
         /// <summary>An open hand turns palm-out toward the crowd.</summary>
         ShowEmpty,
-        /// <summary>Both hands held up in view: "show me your hands" (paused).</summary>
+        /// <summary>Both hands (one, for a one-handed player) held up in view: "show me your hands" (paused).</summary>
         HandsBack,
     }
 
@@ -28,6 +29,7 @@ namespace Misdirection.Show
     /// Translucent ghost hands that show the player what to do, so the first five minutes need no
     /// text (docs/DESIGN.md). Built from primitives; animated in unscaled time so they keep moving
     /// while the show is paused. An optional short caption sits under the hands for accessibility.
+    /// For a one-handed player (Day 11) a single ghost hand demonstrates, on the side of the hand they use.
     /// </summary>
     [DefaultExecutionOrder(40)]
     public sealed class MentorHands : MonoBehaviour
@@ -160,6 +162,13 @@ namespace Misdirection.Show
             float pulse = 0.5f + 0.5f * Mathf.Sin((float)Time.unscaledTimeAsDouble * 4f);
             Vector3 captionAt = f.At(0f, 0.05f, 0.10f);
 
+            // Day 11 access: a one-handed player sees one ghost hand, the same hand they play with.
+            // "lead" does the single-hand moves; "side" mirrors sideways offsets for a left hand.
+            bool solo = AccessSettings.OneHanded;
+            bool leftLead = AccessSettings.LeftHanded;
+            GhostHand lead = leftLead ? left : right;
+            float side = leftLead ? -1f : 1f;
+
             switch (demo)
             {
                 case MentorDemo.PalmsOnTable:
@@ -169,7 +178,7 @@ namespace Misdirection.Show
                     Quaternion down = f.Rotation;
                     right.Place(f.At(0.10f, h, 0.02f), down, HandPose.Flat);
                     left.Place(f.At(-0.10f, h, 0.02f), down, HandPose.Flat);
-                    SetVisible(true, true, false);
+                    SetVisible(!solo || !leftLead, !solo || leftLead, false);
                     captionAt = f.At(0f, 0.16f, 0.10f);
                     break;
                 }
@@ -182,17 +191,17 @@ namespace Misdirection.Show
                     float lift = Smooth(Mathf.Clamp01((t - 0.65f) / 0.3f));
                     Vector3 pos = Vector3.Lerp(Vector3.Lerp(above, at, reach), above, lift);
                     float pinch = Mathf.Clamp01((t - 0.45f) / 0.15f);
-                    right.Place(pos, f.Tilted(35f), HandPose.Lerp(HandPose.Open, HandPose.Pinch, pinch));
-                    SetVisible(true, false, false);
+                    lead.Place(pos, f.Tilted(35f), HandPose.Lerp(HandPose.Open, HandPose.Pinch, pinch));
+                    SetVisible(!leftLead, leftLead, false);
                     captionAt = coin + Vector3.up * 0.20f;
                     break;
                 }
                 case MentorDemo.ShowCoin:
                 {
                     float rise = Smooth(Mathf.Clamp01(t / 0.5f));
-                    Vector3 pos = f.At(0.04f, Mathf.Lerp(0.03f, 0.22f, rise), 0.17f);
-                    right.Place(pos, f.Tilted(10f), HandPose.Pinch);
-                    SetVisible(true, false, false);
+                    Vector3 pos = f.At(0.04f * side, Mathf.Lerp(0.03f, 0.22f, rise), 0.17f);
+                    lead.Place(pos, f.Tilted(10f), HandPose.Pinch);
+                    SetVisible(!leftLead, leftLead, false);
                     captionAt = f.At(0f, 0.30f, 0.20f);
                     break;
                 }
@@ -210,11 +219,11 @@ namespace Misdirection.Show
                 {
                     // From holding height, drift back and down past the near edge, then open.
                     float move = Smooth(Mathf.Clamp01(t / 0.55f));
-                    Vector3 from = f.At(0.06f, 0.10f, 0.14f);
-                    Vector3 to = f.At(0.06f, -0.04f, -0.05f);
+                    Vector3 from = f.At(0.06f * side, 0.10f, 0.14f);
+                    Vector3 to = f.At(0.06f * side, -0.04f, -0.05f);
                     float open = Mathf.Clamp01((t - 0.6f) / 0.15f);
-                    right.Place(Vector3.Lerp(from, to, move), f.Tilted(Mathf.Lerp(20f, 60f, move)), HandPose.Lerp(HandPose.Pinch, HandPose.Open, open));
-                    SetVisible(true, false, false);
+                    lead.Place(Vector3.Lerp(from, to, move), f.Tilted(Mathf.Lerp(20f, 60f, move)), HandPose.Lerp(HandPose.Pinch, HandPose.Open, open));
+                    SetVisible(!leftLead, leftLead, false);
                     captionAt = f.At(0f, 0.10f, -0.02f);
                     break;
                 }
@@ -222,10 +231,10 @@ namespace Misdirection.Show
                 {
                     // Rise, turn the palm out toward the crowd, hold.
                     float turn = Smooth(Mathf.Clamp01(t / 0.4f));
-                    Vector3 pos = f.At(0.08f, Mathf.Lerp(0.04f, 0.20f, turn), 0.18f);
+                    Vector3 pos = f.At(0.08f * side, Mathf.Lerp(0.04f, 0.20f, turn), 0.18f);
                     Quaternion palmOut = Quaternion.LookRotation(Vector3.up, -f.Forward);
-                    right.Place(pos, Quaternion.Slerp(f.Rotation, palmOut, turn), HandPose.Open);
-                    SetVisible(true, false, false);
+                    lead.Place(pos, Quaternion.Slerp(f.Rotation, palmOut, turn), HandPose.Open);
+                    SetVisible(!leftLead, leftLead, false);
                     captionAt = f.At(0f, 0.36f, 0.20f);
                     break;
                 }
@@ -235,7 +244,7 @@ namespace Misdirection.Show
                     float bob = 0.015f * pulse;
                     right.Place(f.At(0.12f, 0.18f + bob, 0.10f), up, HandPose.Open);
                     left.Place(f.At(-0.12f, 0.18f + bob, 0.10f), up, HandPose.Open);
-                    SetVisible(true, true, false);
+                    SetVisible(!solo || !leftLead, !solo || leftLead, false);
                     captionAt = f.At(0f, 0.36f, 0.12f);
                     break;
                 }
