@@ -203,6 +203,8 @@ namespace Misdirection.EditorTools
                     // replaces the alternating sequence. Added to older Show scenes too.
                     ShowSetup.EnsureCupTrickAndSequence(false);
                     ShowSetup.EnsureShowDirector(false);
+                    // Day 10: daily crowd and challenge, trick book, streak, the Regular's memory.
+                    ProgressSetup.EnsureProgressDirector(false);
                 }
                 yield return OVRProjectSetup.FixAllAsync(BuildTargetGroup.Android);
                 yield return null;

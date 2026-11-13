@@ -149,7 +149,7 @@ namespace Misdirection.Core.Crowd
                 AttentionPoint = Vector3.Lerp(AttentionPoint, target, k);
             }
             ConeTarget = Profile.FixedConeOnStage ? s.Stage : AttentionPoint;
-            Suspicion = Math.Max(0f, Suspicion - settings.SuspicionDecayPerSecond * Math.Max(0f, dt));
+            Suspicion = Math.Max(suspicionFloor, Suspicion - settings.SuspicionDecayPerSecond * Math.Max(0f, dt));
         }
 
         /// <summary>Weighted blend of stimuli, sharpened (squared weights) so the strongest pull dominates.</summary>
@@ -211,24 +211,49 @@ namespace Misdirection.Core.Crowd
         public float Witness(Vector3 point, float severity)
         {
             float seen = Coverage(point);
-            AddSuspicion(seen * severity * Profile.SuspicionGain);
+            AddSuspicion(seen * severity * Profile.SuspicionGain * suspicionGainScale);
             return seen;
         }
 
         /// <summary>The secret hand is carrying something at <paramref name="point"/> for <paramref name="dt"/> seconds.</summary>
         public void Expose(Vector3 point, float dt, float ratePerSecond)
         {
-            AddSuspicion(Coverage(point) * ratePerSecond * dt * Profile.SuspicionGain);
+            AddSuspicion(Coverage(point) * ratePerSecond * dt * Profile.SuspicionGain * suspicionGainScale);
         }
 
         public void AddSuspicion(float amount)
         {
-            Suspicion = Math.Max(0f, Math.Min(settings.MaxSuspicion, Suspicion + amount));
+            Suspicion = Math.Max(suspicionFloor, Math.Min(settings.MaxSuspicion, Suspicion + amount));
         }
 
         public void ResetSuspicion()
         {
-            Suspicion = 0f;
+            Suspicion = suspicionFloor;
+        }
+
+        // ------------------------------------------------------------ Day 10: the returning Regular
+
+        private float suspicionGainScale = 1f;
+        private float suspicionFloor;
+
+        /// <summary>Extra multiplier on suspicion gained from seen methods (1 = normal). See <see cref="SetWariness"/>.</summary>
+        public float SuspicionGainScale { get { return suspicionGainScale; } }
+
+        /// <summary>Suspicion never falls below this (0 = normal). See <see cref="SetWariness"/>.</summary>
+        public float SuspicionFloor { get { return suspicionFloor; } }
+
+        /// <summary>
+        /// Day 10: makes this spectator warier than their profile says, for someone who has seen the
+        /// method before (the returning Regular, see Misdirection.Core.Progress.RegularRule). Seen
+        /// methods raise suspicion <paramref name="gainScale"/> times as fast, and suspicion never
+        /// falls below <paramref name="floor"/> (so a floor at the Curious level keeps them Curious).
+        /// SetWariness(1, 0) is back to normal and leaves current suspicion alone.
+        /// </summary>
+        public void SetWariness(float gainScale, float floor)
+        {
+            suspicionGainScale = Math.Max(0f, gainScale);
+            suspicionFloor = Math.Max(0f, Math.Min(settings.MaxSuspicion, floor));
+            Suspicion = Math.Max(suspicionFloor, Suspicion);
         }
     }
 }
