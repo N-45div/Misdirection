@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Misdirection.Audience;
 using Misdirection.Core.Table;
+using Misdirection.Perf;
 using Misdirection.Show;
 using Misdirection.Table;
 using Misdirection.Tricks;
@@ -37,6 +38,8 @@ namespace Misdirection.EditorTools
         private const double WarmUpSeconds = 15;
         private const double ForceTableAfterSeconds = 20;
         private const double ReportAfterSeconds = 30;
+        // Day 12: render statistics are averaged over the last seconds before the report (crowd up, show running).
+        private const double RenderStatsSeconds = 5;
         private const double TimeoutSeconds = 600;
 
         public const string ReportDir = "Builds/Smoke";
@@ -48,6 +51,8 @@ namespace Misdirection.EditorTools
         private static int framesAtWarmUp = -1;
         private static double timeAtWarmUp;
         private static Task pending;
+        private static int statSamples;
+        private static long statBatches, statDrawCalls, statSetPassCalls, statTriangles, statVertices;
 
         static SimulatorSmokeTest()
         {
@@ -174,6 +179,16 @@ namespace Misdirection.EditorTools
                 Notes.Add("no table after " + ForceTableAfterSeconds + " s: placed one in front of the simulated head");
             }
 
+            if (t >= ReportAfterSeconds - RenderStatsSeconds)
+            {
+                // What the Game view's Stats panel shows: a PC-side stand-in for draw cost on the headset.
+                statSamples++;
+                statBatches += UnityStats.batches;
+                statDrawCalls += UnityStats.drawCalls;
+                statSetPassCalls += UnityStats.setPassCalls;
+                statTriangles += UnityStats.triangles;
+                statVertices += UnityStats.vertices;
+            }
             if (t < ReportAfterSeconds)
             {
                 return;
@@ -244,12 +259,52 @@ namespace Misdirection.EditorTools
             json.Append("  \"mentor_demo\": \"").Append(mentor != null ? mentor.Demo.ToString() : "no MentorHands").Append("\",\n");
             json.Append("  \"time_scale\": ").Append(Time.timeScale.ToString("F2", inv)).Append(",\n");
             json.Append("  \"editor_fps\": ").Append(fps.ToString("F1", inv)).Append(",\n");
+            // Day 12: draw cost on the PC (compare runs before and after a change), averaged over the last seconds.
+            int n = Math.Max(1, statSamples);
+            json.Append("  \"batches\": ").Append(statBatches / n).Append(",\n");
+            json.Append("  \"draw_calls\": ").Append(statDrawCalls / n).Append(",\n");
+            json.Append("  \"set_pass_calls\": ").Append(statSetPassCalls / n).Append(",\n");
+            json.Append("  \"triangles\": ").Append(statTriangles / n).Append(",\n");
+            json.Append("  \"vertices\": ").Append(statVertices / n).Append(",\n");
+            json.Append("  \"render_stat_samples\": ").Append(statSamples).Append(",\n");
+            int renderers;
+            int materials = CountMaterials(out renderers);
+            json.Append("  \"renderers\": ").Append(renderers).Append(",\n");
+            json.Append("  \"materials_in_use\": ").Append(materials).Append(",\n");
+            json.Append("  \"shared_materials\": \"").Append(Escape(SharedMaterials.Describe())).Append("\",\n");
+            json.Append("  \"perf_log\": \"").Append(Escape(PerfLogger.LastWindow ?? "no PerfLogger window yet")).Append("\",\n");
+            json.Append("  \"headset_settings\": \"").Append(Escape(QuestPerformance.LastApplied ?? "no QuestPerformance in the scene")).Append("\",\n");
             json.Append("  \"notes\": [").Append(JoinQuoted(Notes)).Append("],\n");
             json.Append("  \"errors\": [").Append(JoinQuoted(Errors)).Append("]\n");
             json.Append("}\n");
             File.WriteAllText(Path.Combine(ReportDir, "report.json"), json.ToString());
             Log("report written: pass=" + pass + " table=" + (table != null ? table.Source.ToString() : "missing") +
                 " spectators=" + spectators + " trick=" + activeTrick + " show=" + stage + " errors=" + Errors.Count);
+        }
+
+        /// <summary>How many different materials the scene's active renderers use (fewer = fewer state changes).</summary>
+        private static int CountMaterials(out int renderers)
+        {
+            HashSet<Material> seen = new HashSet<Material>();
+            List<Material> shared = new List<Material>();
+            renderers = 0;
+            foreach (Renderer r in UnityEngine.Object.FindObjectsByType<Renderer>(FindObjectsSortMode.None))
+            {
+                if (!r.enabled)
+                {
+                    continue;
+                }
+                renderers++;
+                r.GetSharedMaterials(shared);
+                foreach (Material m in shared)
+                {
+                    if (m != null)
+                    {
+                        seen.Add(m);
+                    }
+                }
+            }
+            return seen.Count;
         }
 
         private static void OnLog(string message, string stackTrace, LogType type)
