@@ -162,6 +162,11 @@ namespace Misdirection.EditorTools
             }
             yield return null;
 
+            // Day 12: the shaders the runtime-built spectators and props use must be in the APK.
+            Log("Day 12: shaders that ship (shared materials)");
+            PerformanceSetup.EnsureShippedShaders();
+            yield return null;
+
             Log("4/8 Spike scene");
             foreach (object step in BuildScene(SpikeScenePath, new[] { PassthroughBlock, HandTrackingBlock }, SceneContent.TrackingSpike))
             {
