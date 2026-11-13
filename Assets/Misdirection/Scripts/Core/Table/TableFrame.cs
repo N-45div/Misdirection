@@ -6,7 +6,8 @@ namespace Misdirection.Core.Table
     /// <summary>
     /// The player's real table as a coordinate frame. Origin: middle of the near edge, on the
     /// table surface. +Z points away from the player across the table, +Y up, +X to the player's right.
-    /// Day 2 calibrates it from two palms on the table; Day 5 replaces that with MRUK table detection.
+    /// Day 2 calibrates it from two palms on the table; Day 5 replaces that with MRUK table detection;
+    /// Day 11 adds one palm plus the head's heading for one-handed players.
     /// </summary>
     public struct TableFrame
     {
@@ -53,6 +54,28 @@ namespace Misdirection.Core.Table
             }
             float surface = Math.Min(leftWrist.Y, rightWrist.Y) - wristHeight;
             return new TableFrame(new Vector3(mid.X, surface, mid.Z), forward);
+        }
+
+        /// <summary>
+        /// Day 11 accessibility: calibrate from one palm resting flat on the table with the heel of the hand
+        /// at the near edge. The palm gives the surface height and how far away the near edge is; the head
+        /// gives the rest: the table faces the way the head faces, and the frame is centred in front of the
+        /// head (not on the palm), so the mat lands in the middle whichever hand was used.
+        /// </summary>
+        /// <param name="minEdgeDistance">The near edge is never placed closer to the head than this (metres, horizontal).</param>
+        public static TableFrame FromPalm(Vector3 wrist, Vector3 head, Vector3 headForward, float wristHeight = 0.025f,
+                                          float minEdgeDistance = 0.15f)
+        {
+            // Looking (nearly) straight down at the hand leaves no usable heading: fall back to "from the head toward the palm".
+            Vector3 heading = Flatten(headForward);
+            if (heading.LengthSquared() < 0.04f * headForward.LengthSquared())
+            {
+                heading = Vector3.Zero;
+            }
+            Vector3 forward = Horizontal(heading, Flatten(wrist - head));
+            float depth = Math.Max(minEdgeDistance, Vector3.Dot(Flatten(wrist - head), forward));
+            Vector3 origin = Flatten(head) + forward * depth;
+            return new TableFrame(new Vector3(origin.X, wrist.Y - wristHeight, origin.Z), forward);
         }
 
         private static Vector3 Flatten(Vector3 v)
