@@ -153,6 +153,7 @@ namespace Misdirection.Access
             AccessRuntime runtime = host.AddComponent<AccessRuntime>();
             host.AddComponent<AccessTray>();
             host.AddComponent<SoundCaptions>();
+            host.AddComponent<VoiceLook>();
             return runtime;
         }
 
