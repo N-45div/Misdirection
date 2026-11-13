@@ -1874,6 +1874,9 @@ MonoBehaviour:
   minOpenness: 0.75
   minDropBelowEyes: 0.3
   maxRestSpeed: 0.05
+  onePalmHoldSeconds: 1.5
+  onePalmRecalibrateHoldSeconds: 5
+  onePalmRecalibrateLookDegrees: 20
   servante:
     HalfWidth: 0.3
     NearZ: -0.14
