@@ -572,6 +572,12 @@ public static class ShowRecordTests
         Assert.False(record.CrowdHas(1, Archetype.Filmer), "the Filmer never fitted");
         Assert.Equal(3, record.CrowdOf(1).Length);
         Assert.Equal(ShowRecord.Nobody, record.Events[0].ProducedFrom, "an index past the crowd is nobody");
+        // A reveal reported with nobody placed keeps what is known about the act.
+        record.AddReveal(1, 1, ProgressSim.Reveal("cup", Reaction.Gasp, 9), new Archetype[0]);
+        record.AddReveal(0, 0, ProgressSim.Reveal("vanish", Reaction.Gasp, 9, 2), null);
+        Assert.Equal(3, record.CrowdOf(1).Length, "still the three who fitted");
+        Assert.Equal(3, record.CrowdOf(0).Length, "still the plan");
+        Assert.Equal(ShowRecord.Nobody, record.Events[2].SeenBy, "nobody to name");
         Assert.Equal(1, record.TrickOf(1));
         Assert.Equal(ShowRecord.Nobody, record.TrickOf(7), "no such act");
         Assert.Equal(0, record.CrowdOf(7).Length, "no such act");

@@ -60,11 +60,12 @@ namespace Misdirection.Core.Progress
 
         /// <summary>
         /// A reveal landed. <paramref name="crowd"/> is who is actually standing there (a small room can
-        /// fit fewer people than planned); the reveal's spectator indexes are looked up in it.
+        /// fit fewer people than planned); the reveal's spectator indexes are looked up in it. With
+        /// nobody placed (null or empty) the planned crowd stands.
         /// </summary>
         public void AddReveal(int act, int trick, RevealResult reveal, IList<Archetype> crowd)
         {
-            if (crowd != null && act >= 0 && act < crowds.Length)
+            if (crowd != null && crowd.Count > 0 && act >= 0 && act < crowds.Length)
             {
                 Archetype[] actual = new Archetype[crowd.Count];
                 crowd.CopyTo(actual, 0);
