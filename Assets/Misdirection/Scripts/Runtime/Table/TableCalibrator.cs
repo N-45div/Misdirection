@@ -1,4 +1,5 @@
 using System;
+using Misdirection.Access;
 using Misdirection.Core.Hands;
 using Misdirection.Core.Table;
 using Misdirection.Hands;
@@ -22,8 +23,9 @@ namespace Misdirection.Table
     /// Owns the player's real table as a <see cref="TableFrame"/>. Three sources feed it: the saved
     /// anchor from last time (<see cref="TableAnchorStore"/>), the room scan (<see cref="RoomTableFinder"/>),
     /// and the design's onboarding gesture, both palms flat on the table with the heels of the hands at
-    /// the near edge, which always works and always wins. Also draws the close-up mat and (for testing)
-    /// the servante zone.
+    /// the near edge, which always works and always wins. A one-handed player (Day 11) does it with one
+    /// palm: the head's heading supplies what the second palm would have. Also draws the close-up mat
+    /// and (for testing) the servante zone.
     /// </summary>
     [DefaultExecutionOrder(-20)]
     public sealed class TableCalibrator : MonoBehaviour
@@ -41,6 +43,12 @@ namespace Misdirection.Table
         [SerializeField] private float minDropBelowEyes = 0.30f;
         [Tooltip("Wrists must stay within this speed (m/s) to count as resting.")]
         [SerializeField] private float maxRestSpeed = 0.05f;
+        [Tooltip("One-handed: one palm must rest flat this long to set the table. Longer than for two palms: one open hand held still is a more common pose than two.")]
+        [SerializeField] private float onePalmHoldSeconds = 1.5f;
+        [Tooltip("One-handed: holding one palm flat this long, while looking at it, recalibrates an already calibrated table.")]
+        [SerializeField] private float onePalmRecalibrateHoldSeconds = 5.0f;
+        [Tooltip("One-handed recalibration only counts while the player looks within this many degrees of the resting palm.")]
+        [SerializeField] private float onePalmRecalibrateLookDegrees = 20f;
 
         [Header("Zone and visuals")]
         [SerializeField] private ServanteSettings servante = new ServanteSettings();
@@ -54,11 +62,15 @@ namespace Misdirection.Table
         private Vector3 lastRight;
         private GameObject mat;
         private LineRenderer outline;
+        private bool onePalmMode;
 
         public bool Calibrated { get; private set; }
         public TableSource Source { get; private set; }
         public TableFrame Frame { get; private set; }
         public ServanteZone Zone { get { return zone; } }
+
+        /// <summary>Day 11 access hook: the servante's outline (null until first calibrated), so high contrast can make it bold.</summary>
+        public LineRenderer ServanteOutline { get { return outline; } }
 
         /// <summary>Set false while a trick is in progress so resting palms can't move the table.</summary>
         public bool AllowRecalibration { get; set; }
@@ -110,6 +122,23 @@ namespace Misdirection.Table
 
             Vector3 l = leftHand.StableWrist.position;
             Vector3 r = rightHand.StableWrist.position;
+
+            // Day 11 access: a one-handed player calibrates with one palm. The two-palm path below is unchanged.
+            if (AccessSettings.OneHanded != onePalmMode)
+            {
+                onePalmMode = AccessSettings.OneHanded;
+                // A hold started under the other rules doesn't count (but "let go first" after a calibration still does).
+                if (!float.IsNegativeInfinity(heldFor))
+                {
+                    heldFor = 0f;
+                }
+            }
+            if (onePalmMode)
+            {
+                UpdateOnePalm(l, r);
+                return;
+            }
+
             bool resting = PalmsResting(l, r);
             lastLeft = l;
             lastRight = r;
@@ -151,6 +180,103 @@ namespace Misdirection.Table
             }
             float dt = Mathf.Max(Time.deltaTime, 1e-4f);
             return Vector3.Distance(l, lastLeft) / dt <= maxRestSpeed && Vector3.Distance(r, lastRight) / dt <= maxRestSpeed;
+        }
+
+        /// <summary>
+        /// Day 11 access: one palm, flat and still for the hold time, sets the table from that palm and the
+        /// way the head faces (the mat lands centred in front of the head). Either hand will do; if both
+        /// palms happen to be resting, it is the ordinary two-palm calibration. Moving a table that is
+        /// already set takes longer and needs the player to be looking at the palm: a hand resting on the
+        /// table while the player watches the crowd must not move it.
+        /// </summary>
+        private void UpdateOnePalm(Vector3 l, Vector3 r)
+        {
+            bool leftRests = OnePalmResting(leftHand, l, lastLeft);
+            bool rightRests = OnePalmResting(rightHand, r, lastRight);
+            lastLeft = l;
+            lastRight = r;
+            bool resting = leftRests || rightRests;
+            if (resting && Calibrated && !(leftRests && rightRests) && !LookingAt(leftRests ? l : r, onePalmRecalibrateLookDegrees))
+            {
+                resting = false;
+            }
+
+            heldFor = resting ? heldFor + Time.deltaTime : 0f;
+            float needed = Calibrated ? onePalmRecalibrateHoldSeconds : onePalmHoldSeconds;
+            Progress = Mathf.Clamp01(heldFor / needed);
+            if (heldFor < needed)
+            {
+                return;
+            }
+            heldFor = float.NegativeInfinity; // require letting go before the next calibration
+            Vector3 head = Head();
+            if (leftRests && rightRests)
+            {
+                SetFrame(TableFrame.FromPalms(l.ToNumerics(), r.ToNumerics(), head.ToNumerics()), TableSource.Palms);
+            }
+            else
+            {
+                Vector3 palm = leftRests ? l : r;
+                SetFrame(TableFrame.FromPalm(palm.ToNumerics(), head.ToNumerics(), HeadForward().ToNumerics()), TableSource.Palms);
+            }
+            Debug.Log("[Misdirection] Table calibrated by " + (leftRests && rightRests ? "palms" : "one palm (" + (leftRests ? "left" : "right") + ")") +
+                      " at " + Frame.Origin.ToUnity() + ", facing " + Frame.Forward.ToUnity());
+        }
+
+        /// <summary>One palm resting on a table in front of the player: open, palm down, low, within reach and still.</summary>
+        private bool OnePalmResting(TrackedHand hand, Vector3 wrist, Vector3 last)
+        {
+            HandPresence presence = hand.Presence;
+            if (presence == null || !presence.ReliableForDecisions)
+            {
+                return false;
+            }
+            float open = hand.Shape.Openness;
+            if (float.IsNaN(open) || open < minOpenness)
+            {
+                return false;
+            }
+            // With only one palm to go on, be stricter: it must face down (not an open hand held up or on its side)...
+            if (hand.PalmNormal.y > -0.7f)
+            {
+                return false;
+            }
+            Vector3 head = Head();
+            if (head.y - wrist.y < minDropBelowEyes)
+            {
+                return false;
+            }
+            // ...and sit where a table would be: in front of the player, within reach.
+            Vector3 flat = wrist - head;
+            flat.y = 0f;
+            if (flat.magnitude < 0.12f || flat.magnitude > 0.75f)
+            {
+                return false;
+            }
+            float dt = Mathf.Max(Time.deltaTime, 1e-4f);
+            return Vector3.Distance(wrist, last) / dt <= maxRestSpeed;
+        }
+
+        /// <summary>True when the player's look (eyes, else head) points within <paramref name="degrees"/> of a point.</summary>
+        private bool LookingAt(Vector3 point, float degrees)
+        {
+            Vector3 to = point - Head();
+            if (to.sqrMagnitude < 1e-6f)
+            {
+                return true;
+            }
+            Vector3 direction = lookSource != null && lookSource.Head != null ? lookSource.Direction : HeadForward();
+            return Vector3.Angle(direction, to) <= degrees;
+        }
+
+        private Vector3 HeadForward()
+        {
+            if (lookSource != null && lookSource.Head != null)
+            {
+                return lookSource.Head.forward;
+            }
+            Camera cam = Camera.main;
+            return cam != null ? cam.transform.forward : Vector3.forward;
         }
 
         private Vector3 Head()

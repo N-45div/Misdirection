@@ -20,6 +20,9 @@ namespace Misdirection.Tricks
 
         public Vector3 Position { get { return coin != null ? coin.position : transform.position; } }
 
+        /// <summary>Day 11 access hook: the coin's visual, so high contrast can hang a bright rim on it.</summary>
+        public Transform Visual { get { return coin; } }
+
         private void Awake()
         {
             GameObject go = GameObject.CreatePrimitive(PrimitiveType.Cylinder);

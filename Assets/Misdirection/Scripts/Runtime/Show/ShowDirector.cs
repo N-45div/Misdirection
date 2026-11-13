@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Misdirection.Access;
 using Misdirection.Audience;
 using Misdirection.Core.Crowd;
 using Misdirection.Core.Show;
@@ -101,6 +102,9 @@ namespace Misdirection.Show
                 flow.Settings.Acts = acts;
             }
         }
+
+        /// <summary>Day 11 access hook: the tutorial's live timings, so relaxed timing can scale them.</summary>
+        public TutorialSettings TutorialSettings { get { return tutorialSettings; } }
 
         public void Configure(MonoBehaviour[] trickDirectors, Crowd audience, TableCalibrator tableCalibrator, TrackedHand left,
                               TrackedHand right, LookSource look, MentorHands mentorHands)
@@ -218,6 +222,8 @@ namespace Misdirection.Show
             pause.WatchHands = flow.Stage != ShowStage.Setup;
             bool left = leftHand != null && leftHand.Tracked;
             bool right = rightHand != null && rightHand.Tracked;
+            // Day 11 access hook: a one-handed player resumes with their one hand back.
+            pause.OneHanded = AccessSettings.OneHanded;
             if (pause.Update(real, left, right, hasInputFocus))
             {
                 ApplyPause(pause.Paused);
@@ -228,7 +234,7 @@ namespace Misdirection.Show
                 if (mentor != null)
                 {
                     mentor.Show(pause.Reason == PauseReason.HandsGone ? MentorDemo.HandsBack : MentorDemo.None,
-                                "Show both hands to carry on");
+                                AccessSettings.HandsBackCaption);
                 }
                 return;
             }
@@ -483,13 +489,13 @@ namespace Misdirection.Show
             switch (flow.Stage)
             {
                 case ShowStage.Setup:
-                    mentor.Show(MentorDemo.PalmsOnTable, "Rest both palms flat on the table");
+                    mentor.Show(MentorDemo.PalmsOnTable, AccessSettings.PalmsCaption);
                     break;
 
                 case ShowStage.Tutorial:
                     switch (tutorial.Step)
                     {
-                        case TutorialStep.PalmsOnTable: mentor.Show(MentorDemo.PalmsOnTable, "Rest both palms flat on the table"); break;
+                        case TutorialStep.PalmsOnTable: mentor.Show(MentorDemo.PalmsOnTable, AccessSettings.PalmsCaption); break;
                         case TutorialStep.PickUp: mentor.Show(MentorDemo.PickUp, "Pinch the coin"); break;
                         case TutorialStep.ShowCoin: mentor.Show(MentorDemo.ShowCoin, "Hold it up for her"); break;
                         case TutorialStep.LookAtKid:

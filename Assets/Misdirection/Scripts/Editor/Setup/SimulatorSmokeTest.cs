@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
+using Misdirection.Access;
 using Misdirection.Audience;
 using Misdirection.Core.Table;
 using Misdirection.Progress;
@@ -134,6 +135,8 @@ namespace Misdirection.EditorTools
             PlayerPrefs.DeleteKey(TableAnchorStore.PrefsKey);
             // ...and as a first launch, so the tutorial (first five minutes) is what plays.
             ShowDirector.ForgetTutorial();
+            // ...with the default accessibility options (one hand: auto, captions on, voice off).
+            AccessRuntime.ForgetSettings();
             PlayerPrefs.Save();
             EditorSceneManager.OpenScene(MisdirectionBootstrap.ShowScenePath, OpenSceneMode.Single);
             Log("entering Play mode in Show.unity");
@@ -221,6 +224,7 @@ namespace Misdirection.EditorTools
             MentorHands mentor = UnityEngine.Object.FindFirstObjectByType<MentorHands>();
             // Day 10: the day number, today's challenge and the streak (reported, not part of pass/fail).
             ProgressDirector progress = UnityEngine.Object.FindFirstObjectByType<ProgressDirector>();
+            AccessRuntime access = AccessRuntime.Current;
             string stage = show != null && show.Flow != null ? show.Flow.Stage.ToString() : "no ShowDirector";
             // With the table set on a first launch, the show must have moved on to the tutorial.
             bool showOk = show != null && show.Flow != null && show.Flow.Stage != Core.Show.ShowStage.Setup;
@@ -248,6 +252,8 @@ namespace Misdirection.EditorTools
             json.Append("  \"progress_day\": ").Append(progress != null ? progress.DayNumber.ToString(inv) : "null").Append(",\n");
             json.Append("  \"daily_challenge\": \"").Append(Escape(progress != null ? progress.ChallengeText : "no ProgressDirector")).Append("\",\n");
             json.Append("  \"streak\": ").Append(progress != null ? progress.Streak.ToString(inv) : "null").Append(",\n");
+            json.Append("  \"one_handed\": ").Append(access != null && access.OneHandedActive ? "true" : "false").Append(",\n");
+            json.Append("  \"access_settings\": \"").Append(Escape(access != null ? access.Summary : "no AccessRuntime")).Append("\",\n");
             json.Append("  \"time_scale\": ").Append(Time.timeScale.ToString("F2", inv)).Append(",\n");
             json.Append("  \"editor_fps\": ").Append(fps.ToString("F1", inv)).Append(",\n");
             json.Append("  \"notes\": [").Append(JoinQuoted(Notes)).Append("],\n");

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Text;
+using Misdirection.Access;
 using Misdirection.Core.Crowd;
 using Misdirection.Core.Hands;
 using Misdirection.Hands;
@@ -77,6 +78,9 @@ namespace Misdirection.Audience
         /// <summary>Who is in the audience, in arc order.</summary>
         public IReadOnlyList<Archetype> Archetypes { get { return archetypes; } }
 
+        /// <summary>Day 11 access hook: the live attention timings, so relaxed timing can lengthen the eye-contact window.</summary>
+        public AttentionSettings Attention { get { return attentionSettings; } }
+
         /// <summary>
         /// Changes who is in the audience (the show grows the crowd each act). Re-places everyone if the
         /// table is known and the line-up actually changed. Returns true if it did.
@@ -125,7 +129,8 @@ namespace Misdirection.Audience
         /// <summary>A secret move (palm, ditch, load) happened at <paramref name="point"/>. Adds suspicion to whoever saw it.</summary>
         public WitnessReport ReportMethod(Vector3 point, float severity = 1f)
         {
-            return model.Witness(point.ToNumerics(), severity);
+            // Day 11 access hook: relaxed timing lowers the suspicion gained (how well it was seen is unchanged).
+            return model.Witness(point.ToNumerics(), severity * AccessSettings.SuspicionScale);
         }
 
         /// <summary>Call every frame while the secret hand carries something: exposure inside a cone builds suspicion.</summary>
@@ -133,7 +138,8 @@ namespace Misdirection.Audience
         {
             secretPoint = point;
             hasSecret = true;
-            model.Expose(point.ToNumerics(), Time.deltaTime, exposureRate);
+            // Day 11 access hook: relaxed timing lowers the suspicion gained.
+            model.Expose(point.ToNumerics(), Time.deltaTime, exposureRate * AccessSettings.SuspicionScale);
         }
 
         /// <summary>Nothing secret is in play this frame (clears the red cone tint).</summary>
@@ -152,12 +158,16 @@ namespace Misdirection.Audience
             {
                 spectators[i].React(reaction, i == seenBy);
             }
+            // Day 11 access hook: captions for the crowd's sounds.
+            SoundCaptions.CrowdReacted(this, reaction, seenBy);
         }
 
         /// <summary>A sound at <paramref name="point"/> draws eyes (a coin clink, "Look!").</summary>
         public void MakeSound(Vector3 point, float strength = 1f)
         {
             model.Sound(Time.timeAsDouble, point.ToNumerics(), strength);
+            // Day 11 access hook: caption the sound where it happened.
+            SoundCaptions.SoundMade(point);
         }
 
         public string NameOf(int index)

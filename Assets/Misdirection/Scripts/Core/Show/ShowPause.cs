@@ -28,6 +28,13 @@ namespace Misdirection.Core.Show
         /// <summary>Set false to ignore hand loss (e.g. before the table exists, when nobody is playing yet).</summary>
         public bool WatchHands = true;
 
+        /// <summary>Day 11 accessibility: a one-handed player resumes with their one hand back (see <see cref="BothHandsPause.OneHanded"/>).</summary>
+        public bool OneHanded
+        {
+            get { return hands.OneHanded; }
+            set { hands.OneHanded = value; }
+        }
+
         public PauseReason Reason { get; private set; }
         public bool Paused { get { return Reason != PauseReason.None; } }
 

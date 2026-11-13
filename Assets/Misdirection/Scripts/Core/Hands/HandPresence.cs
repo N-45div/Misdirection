@@ -190,7 +190,8 @@ namespace Misdirection.Core.Hands
 
     /// <summary>
     /// "The crowd waits": pauses the show when both hands have been gone for a while, and resumes
-    /// once both are steadily back. Doubles as the clean pause/resume Meta asks for.
+    /// once both are steadily back (or, for a one-handed player, once their hand is). Doubles as the
+    /// clean pause/resume Meta asks for.
     /// </summary>
     public sealed class BothHandsPause
     {
@@ -206,6 +207,12 @@ namespace Misdirection.Core.Hands
         }
 
         public bool Paused { get; private set; }
+
+        /// <summary>
+        /// Day 11 accessibility: the player is using one hand, so one hand steadily back resumes.
+        /// (Pausing is unchanged: with one hand, "both gone" is that hand gone.)
+        /// </summary>
+        public bool OneHanded { get; set; }
 
         /// <summary>Returns true on the frame the paused state changes.</summary>
         public bool Update(double time, bool leftTracked, bool rightTracked)
@@ -228,7 +235,7 @@ namespace Misdirection.Core.Hands
                 bothGoneSince = -1;
                 if (Paused)
                 {
-                    if (leftTracked && rightTracked)
+                    if ((leftTracked && rightTracked) || OneHanded)
                     {
                         if (bothBackSince < 0)
                         {
