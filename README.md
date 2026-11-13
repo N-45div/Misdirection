@@ -37,6 +37,7 @@ Entry for the Meta Horizon Start Developer Competition 2026, Gaming track (Best 
 | 7 | Sun Nov 8 | **Code written early (Nov 6):** readable crowd: faces (brows, mouth), arms (fold, clap, point, hands up), lean, accessories, 3-D murmurs, claps, gasps and "hm!"; reveals play through the crowd. Runs in the Meta XR Simulator smoke test ([runbook](docs/days/day-07.md)) |
 | 8 | Mon Nov 9 | Slipped; the show flow landed on Day 9 |
 | 9 | Tue Nov 10 | **Gate 3, feature freeze.** The show has a start and an end: first-launch tutorial with the Kid and ghost mentor hands, three acts with a growing crowd, bow with tips and stars, walk-off after 3 busts, pick up the coin to go again; pause when both hands leave or focus is lost. 94 core tests. Simulator smoke test passes (tutorial starts with the Kid; pause works). Hands-on check and fresh-eyes test pending ([runbook](docs/days/day-09.md)) |
+| 10 | Wed Nov 11 | **Code written Nov 13:** a reason to come back, saved on the device only (the cut rule: no Platform SDK). A new seeded crowd and a challenge every calendar day; the Regular returns from day two and remembers your last show ("Same as yesterday!"); a trick book with mastery stars at the bow; days played and streaks. 148 core tests. Not yet run in the simulator ([runbook](docs/days/day-10.md)) |
 
 ## Getting started
 
