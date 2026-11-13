@@ -70,6 +70,38 @@ namespace Misdirection.Show
         public bool Paused { get { return pause.Paused; } }
         public PauseReason PauseReason { get { return pause.Reason; } }
 
+        // ---- Day 10 hooks: Misdirection.Progress.ProgressDirector listens to these. Nothing here needs a listener.
+
+        /// <summary>A new show is starting: its first act is about to bring the crowd in.</summary>
+        public event Action ShowStarted;
+
+        /// <summary>A reveal in the show proper (not the tutorial): the trick's index and the crowd's verdict.</summary>
+        public event Action<int, RevealResult> ShowRevealed;
+
+        /// <summary>A bust in the show proper: the trick's index.</summary>
+        public event Action<int> ShowBusted;
+
+        /// <summary>The show ended, in a bow or a walk-off.</summary>
+        public event Action<ShowSummary> ShowEnded;
+
+        /// <summary>
+        /// Day 10: replaces the acts (today's seeded crowd). Call it before the first act starts: at
+        /// startup, or from <see cref="ShowStarted"/> when a new day has begun. The flow reads the same
+        /// settings object, so it picks the new acts up; walk-off and bow settings stay as set here.
+        /// </summary>
+        public void UseActs(ShowAct[] acts)
+        {
+            if (acts == null || acts.Length == 0)
+            {
+                return;
+            }
+            settings.Acts = acts;
+            if (flow != null)
+            {
+                flow.Settings.Acts = acts;
+            }
+        }
+
         public void Configure(MonoBehaviour[] trickDirectors, Crowd audience, TableCalibrator tableCalibrator, TrackedHand left,
                               TrackedHand right, LookSource look, MentorHands mentorHands)
         {
@@ -295,6 +327,10 @@ namespace Misdirection.Show
                 return;
             }
             flow.Revealed(r);
+            if (flow.Stage == ShowStage.Performing && ShowRevealed != null)
+            {
+                ShowRevealed(index, r);
+            }
         }
 
         private void OnBusted(int index)
@@ -302,6 +338,10 @@ namespace Misdirection.Show
             if (index != activeTrick)
             {
                 return;
+            }
+            if (flow.Stage == ShowStage.Performing && ShowBusted != null)
+            {
+                ShowBusted(index);
             }
             if (flow.Busted(Time.timeAsDouble))
             {
@@ -328,6 +368,11 @@ namespace Misdirection.Show
                     break;
 
                 case ShowStage.Performing:
+                    if (flow.Act == 0 && ShowStarted != null)
+                    {
+                        // Day 10: listeners may swap in today's acts (UseActs) before the crowd arrives.
+                        ShowStarted();
+                    }
                     ShowBanner(flow.ActCount > 1 ? "Act " + (flow.Act + 1) + " of " + flow.ActCount : "", now, 2.5);
                     Play(arrive);
                     Debug.Log("[Misdirection] Show: act " + (flow.Act + 1) + " of " + flow.ActCount + ", trick " + flow.ActiveTrick +
@@ -358,6 +403,10 @@ namespace Misdirection.Show
             if (!flow.Over)
             {
                 HideStars();
+            }
+            else if (ShowEnded != null)
+            {
+                ShowEnded(flow.LastSummary);
             }
             for (int i = 0; i < seq.Length; i++)
             {
