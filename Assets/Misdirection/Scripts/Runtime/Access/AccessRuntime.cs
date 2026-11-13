@@ -151,6 +151,7 @@ namespace Misdirection.Access
         public static AccessRuntime AddTo(GameObject host)
         {
             AccessRuntime runtime = host.AddComponent<AccessRuntime>();
+            host.AddComponent<AccessTray>();
             host.AddComponent<SoundCaptions>();
             return runtime;
         }
