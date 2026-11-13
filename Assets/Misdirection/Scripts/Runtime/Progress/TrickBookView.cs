@@ -41,9 +41,11 @@ namespace Misdirection.Progress
             // The page: a thin dark card just behind the text.
             GameObject card = Primitive(PrimitiveType.Cube, "Page", new Vector3(0f, 0f, 0.004f), new Vector3(Width, Height, 0.004f));
             Renderer cardRenderer = card.GetComponent<Renderer>();
-            page = Tinted(cardRenderer, new Color(0.09f, 0.07f, 0.13f));
-            gold = Tinted(cardRenderer, new Color(1f, 0.8f, 0.2f));
-            grey = Tinted(cardRenderer, new Color(0.35f, 0.35f, 0.38f));
+            // SharedMaterials, not a copy of the primitive's default: in a player build that default is
+            // the built-in Standard material, which URP doesn't draw (the book would be invisible on Quest).
+            page = SharedMaterials.Lit(new Color(0.09f, 0.07f, 0.13f));
+            gold = SharedMaterials.Lit(new Color(1f, 0.8f, 0.2f));
+            grey = SharedMaterials.Lit(new Color(0.35f, 0.35f, 0.38f));
             cardRenderer.sharedMaterial = page;
 
             title = Label("Title", new Vector2(0f, 0.105f), new Vector2(Width - 0.02f, 0.03f), 0.2f, TextAlignmentOptions.Center);
@@ -146,9 +148,7 @@ namespace Misdirection.Progress
 
         public void Dispose()
         {
-            DestroyNow(page);
-            DestroyNow(gold);
-            DestroyNow(grey);
+            // The materials belong to SharedMaterials (other objects use them too): drop them, never destroy.
             page = null;
             gold = null;
             grey = null;
@@ -176,26 +176,10 @@ namespace Misdirection.Progress
                 UnityEngine.Object.Destroy(c);
             }
             Renderer r = go.GetComponent<Renderer>();
+            r.sharedMaterial = page != null ? page : SharedMaterials.Lit(Color.grey);
             r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             r.receiveShadows = false;
             return go;
-        }
-
-        /// <summary>One shared material per colour, copied from the primitives' default material (so it suits the render pipeline).</summary>
-        private static Material Tinted(Renderer template, Color color)
-        {
-            Material m = new Material(template.sharedMaterial);
-            m.name = "Trick Book " + ColorUtility.ToHtmlStringRGB(color);
-            m.color = color;
-            return m;
-        }
-
-        private static void DestroyNow(Material m)
-        {
-            if (m != null)
-            {
-                UnityEngine.Object.Destroy(m);
-            }
         }
     }
 }
