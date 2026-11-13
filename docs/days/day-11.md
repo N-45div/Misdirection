@@ -69,7 +69,7 @@ Five tokens in a row just outside the mat's left edge, 7 cm apart, clear of the 
 
 No speech recognition and nothing is recorded or sent anywhere: the game reads the microphone's loudness only. A sound counts when it is short (30 ms to 0.9 s) and at least four times the room's noise level; it fires when the sound ends, at most once every 1.2 s. The crowd hears a sound at the point you are looking at, the same thing a coin's clink does, and a `Look!` caption appears there. While the game itself is making noise the microphone is ignored, so the headset's speakers can't trigger it.
 
-**Permissions.** The app never asks for the microphone at startup. The system's permission dialog appears once, at the moment the *Voice* token is switched on. Say no (or have no microphone) and the token switches itself back off with a caption saying why. Details in [Permissions at startup](#permissions-at-startup) below.
+**Permissions.** The app never asks for the microphone at startup. The system's permission dialog appears once, at the moment the *Voice* token is switched on. Say no (or have no microphone) and the token switches itself back off with a caption saying why. If voice was left on and the permission has since gone (revoked in the system settings, or granted "only this time"), the next launch switches voice off instead of asking. Details in [Permissions at startup](#permissions-at-startup) below.
 
 ## Code
 

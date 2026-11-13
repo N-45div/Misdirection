@@ -12,9 +12,11 @@ namespace Misdirection.Access
     /// The voice alternative to the show-hand flourish (Day 11), for players without a free hand:
     /// say "Look!" (or clap, or tap the table) and the crowd's eyes go to where you are looking.
     /// Off by default. The microphone is only opened, and its permission only asked for, at the
-    /// moment the player switches the Voice token on: never at startup. If there is no microphone or
-    /// the player says no, the token switches itself back off and a caption says why. No speech is
-    /// recognised or stored: only the loudness is read (Misdirection.Core.Access.LoudSoundDetector).
+    /// moment the player switches the Voice token on: never at startup, not even when voice was left
+    /// on last time and the permission has since gone (then voice switches itself off instead). If
+    /// there is no microphone or the player says no, the token switches itself back off and a caption
+    /// says why. No speech is recognised or stored: only the loudness is read
+    /// (Misdirection.Core.Access.LoudSoundDetector).
     /// </summary>
     [DefaultExecutionOrder(34)]
     public sealed class VoiceLook : MonoBehaviour
@@ -43,6 +45,7 @@ namespace Misdirection.Access
         private double askedAt;
         private bool granted;
         private bool denied;
+        private bool playerAsked;
 
         /// <summary>True while the microphone is open and being listened to.</summary>
         public bool Listening { get { return state == State.Listening; } }
@@ -56,9 +59,30 @@ namespace Misdirection.Access
             detector = new LoudSoundDetector(settings);
         }
 
+        private void OnEnable()
+        {
+            if (access != null)
+            {
+                access.Changed += OnOptionChanged;
+            }
+        }
+
         private void OnDisable()
         {
+            if (access != null)
+            {
+                access.Changed -= OnOptionChanged;
+            }
             StopListening();
+        }
+
+        private void OnOptionChanged(AccessToggle toggle)
+        {
+            // The player has just switched voice on: now, and only now, the permission may be asked for.
+            if (toggle == AccessToggle.Voice && access.Options.Voice)
+            {
+                playerAsked = true;
+            }
         }
 
         private void OnApplicationPause(bool paused)
@@ -93,7 +117,11 @@ namespace Misdirection.Access
 
         // ------------------------------------------------------------ permission
 
-        /// <summary>The player has just switched voice on: this is the only place the microphone is asked for.</summary>
+        /// <summary>
+        /// Voice is on and the microphone is not open yet. This is the only place the permission is asked for,
+        /// and only straight after the player switched voice on. Voice left on from last time with the
+        /// permission gone (revoked, or granted "only this time") switches off quietly: no prompt at startup.
+        /// </summary>
         private void Begin()
         {
             askedAt = Time.unscaledTimeAsDouble;
@@ -102,6 +130,12 @@ namespace Misdirection.Access
 #if UNITY_ANDROID && !UNITY_EDITOR
             if (!Permission.HasUserAuthorizedPermission(Permission.Microphone))
             {
+                if (!playerAsked)
+                {
+                    Unavailable("Voice needs the microphone again: switch it back on to allow it");
+                    return;
+                }
+                playerAsked = false;
                 state = State.Asking;
                 PermissionCallbacks callbacks = new PermissionCallbacks();
                 callbacks.PermissionGranted += OnPermissionGranted;
@@ -111,6 +145,7 @@ namespace Misdirection.Access
                 return;
             }
 #endif
+            playerAsked = false;
             OpenMicrophone();
         }
 
