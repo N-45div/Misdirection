@@ -9,6 +9,7 @@ Entry for the **Meta VR Start Developer Competition 2026**, Gaming track, New Ex
 | | |
 |---|---|
 | **Play it (Meta Quest 3 / 3S)** | [Competition release channel](https://www.meta.com/s/8hKddZFv8): open on your phone or PC, join, then install from your headset's library |
+| **Website** | [misdirection-game.vercel.app](https://misdirection-game.vercel.app): trailer, how it plays, [support](https://misdirection-game.vercel.app/support) and [privacy](https://misdirection-game.vercel.app/privacy) |
 | **Video** | Demo video on YouTube (link on the Devpost page) |
 | **Controllers** | Not needed. Hands only, start to finish |
 | **Session** | A full show is three short acts; the first applause comes within the first minute |
