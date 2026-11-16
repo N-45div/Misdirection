@@ -13,7 +13,7 @@ Copy each field into the [Devpost form](https://start-developer-competition-26.d
 | Release channel link | https://www.meta.com/s/8hKddZFv8 |
 | Video | **TODO:** public YouTube link (under 3:00) |
 | Target launch date | Q2 2027, on the Meta Horizon Store |
-| Team | **TODO:** names, emails and roles of each member |
+| Team | Solo: N Divij, design, code, art and video (email from the Devpost account) |
 
 ## Description
 
