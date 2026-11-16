@@ -1,74 +1,92 @@
-# Misdirection (working title)
+# Misdirection
 
-A seated, hands-only, mixed-reality street-magic game for Meta Quest. Your gaze and your "show hand" steer a crowd's attention while your "secret hand" palms, ditches and produces coins at your own real table.
+**Street magic at your real table. Where you look, they look.**
 
-**Core rule: where you look, they look.**
+A seated, hands-only, mixed-reality game for Meta Quest 3 and 3S. A small street crowd gathers across your own table, and their eyes follow yours. Look a spectator in the eye and they lock onto your face. Meanwhile your other hand palms, ditches and produces a coin at the table's edge. Get caught and the Skeptic points at your hands: "Hm!"
 
-Entry for the Meta Horizon Start Developer Competition 2026, Gaming track (Best New Gaming Experience). Built in Unity 6 with Meta XR SDK v207, locked at v207 for the whole build.
+Entry for the **Meta VR Start Developer Competition 2026**, Gaming track, New Experience division.
 
-- Submission target: **18:00 IST, Wed Nov 18, 2026** (Devpost closes 01:30 IST Nov 19)
-- Fun gate: **Thu Nov 5 (Day 4)**. If outsiders don't get "where I look, they look" unprompted, the team pivots to Kolam Dawn on Day 5.
+| | |
+|---|---|
+| **Play it (Meta Quest 3 / 3S)** | [Competition release channel](https://www.meta.com/s/8hKddZFv8): open on your phone or PC, join, then install from your headset's library |
+| **Video** | Demo video on YouTube (link on the Devpost page) |
+| **Controllers** | Not needed. Hands only, start to finish |
+| **Session** | A full show is three short acts; the first applause comes within the first minute |
 
-## Where things are
+![Pluck the coin from a spectator's ear by looking at them and pinching](media/produce.jpg)
+
+## How to play
+
+1. **Sit at a table** and launch the game. The room scan finds your table; if it can't, rest both palms flat on the table for a second (one palm works too).
+2. **Follow the ghost hands.** On first launch one spectator, the Kid, teaches the rule with no text needed: pick up the coin, hold it up, look her in the eyes, drop the coin just past the near edge of the table, then show her your empty hand. She claps.
+3. **Perform the show.** Three acts, and the crowd grows each act:
+   - **Vanish and produce:** ditch the coin while they hold your gaze, then steal it back and look at someone and pinch near their ear to produce it.
+   - **Coin under the cup:** slip it under the cup's rim and lift the cup for the reveal.
+   - Clean methods earn applause and tips. Three busts and the crowd walks off.
+4. **Take your bow** for tips and up to three stars. Pick the coin up again to start a new show.
+
+Take both hands out of view and the show pauses ("the crowd waits"); bring them back and it carries on.
+
+![The first five minutes: ghost hands show every move, no wall of text](media/tutorial.jpg)
+
+## What we built for each judging criterion
+
+**Innovation & Creativity.** Gaze isn't a menu pointer here; it's the core verb. Each spectator blends where you look, your flourishes and any sounds into their attention, and a move made inside someone's attention cone raises their suspicion. Tourists follow your gaze, the Kid chases movement, the Skeptic watches your hands, the Filmer keeps a phone on the table. Stare too long and they look away, often at your hands.
+
+**Experience Design.**
+- **First five minutes:** a tutorial taught entirely by ghost hands and one spectator, with first applause in about 9 seconds of play.
+- **Purposeful passthrough:** your real table is the stage, and the crowd stands on your open floor, clear of walls and furniture.
+- **A reason to come back:** a new crowd and challenge every day, a trick book with mastery stars, a streak, and a returning Regular who remembers how you fooled him yesterday.
+- **Accessible by default:** one-handed play switches on by itself (one-palm table setup, one-hand pause and resume). Relaxed timing, captions for the crowd's sounds, high contrast, an Access Tray you can toggle just by looking at it for 1.5 seconds, and an optional "Look!" or clap instead of the flourish. The microphone is only requested if you turn that on.
+
+**Technical Implementation.**
+- **Hands:** our own grip rules for hand tracking. A sticky pinch with the coin held at the wrist, no release decisions while tracking is unsure, and hands that freeze, fade and blend back when tracking drops.
+- **Gaze:** the Interaction SDK v207's `GazeInteractor` hovering a `GazeInteractable` on every spectator's face, driven by head direction on Quest 3/3S and eye gaze where the device has it.
+- **Room:** scene understanding (MRUK) to find the table and place the crowd, and a spatial anchor to remember the table next session.
+- **Performance and layout:** shared materials (46 draw calls in a full scene), dynamic foveation and 72 Hz on Quest. Essential UI eases back into a 70° × 66° view, the narrowest of Meta's devices.
+- **Tests:** the game rules are engine-free C# covered by 225 unit tests.
+
+**Polish & Presentation.** Readable stylised spectators with faces, arms and 3-D voices; reactions that play through the crowd (claps, gasps, a pointed "Hm!"); every state has a sound and a visual, because hands have no haptics.
+
+![The stakes: load the cup while the Skeptic watches and she calls you out](media/stakes.jpg)
+
+## Built without a headset
+
+Nobody on the team has a Quest. We built and tested with:
+- **Meta XR Simulator 207**, with webcam hand tracking and synthetic rooms.
+- **An automated simulator smoke test** after every change. It checks for errors, the table, the crowd, the show stage, draw cost and the glasses-sized view.
+- **Unit tests** for every game rule.
+
+The demo video shows the real game running in the Unity Editor with **scripted head and hand input**; stand-in hands and a simple room take the place of your own hands and passthrough. Every trick, reaction and pause in it ran through the game's real code (`Assets/Misdirection/Scripts/Runtime/Trailer/`).
+
+Release builds are signed and pass Meta's upload validation and security checks.
+
+## Tech
+
+- Unity 6 (6000.0.66f2), Universal Render Pipeline
+- Meta XR SDK v207 (Core, Interaction SDK, MR Utility Kit, Platform)
+- Hands only; built for Quest 3 and 3S
+
+## Repository
 
 | Path | What it is |
 |---|---|
-| [docs/TIMELINE.md](docs/TIMELINE.md) | Day-by-day plan from Nov 1 to Nov 18, split by role, with gates, cut order and pivot rule |
-| [docs/days/](docs/days/) | Detailed runbook for each day as it starts. **Latest: [day-12.md](docs/days/day-12.md)** (Days 10–11: [day-10.md](docs/days/day-10.md), [day-11.md](docs/days/day-11.md)). Submission: [SUBMISSION.md](docs/SUBMISSION.md) |
-| [docs/DESIGN.md](docs/DESIGN.md) | Game design and how each feature maps to the judging criteria |
-| [docs/OPEN_ITEMS.md](docs/OPEN_ITEMS.md) | Rules, eligibility and device questions to verify, with owners and due dates |
-| [docs/TRAILER.md](docs/TRAILER.md) | Video shot list (under 3:00) |
-| [docs/NO_HEADSET.md](docs/NO_HEADSET.md) | **No Quest on the team:** testing in Meta XR Simulator 207.1, what each gate becomes, the risks we accept |
-| [docs/BUILD_WITHOUT_A_HEADSET.md](docs/BUILD_WITHOUT_A_HEADSET.md) | Compile checks with no Unity licence; APK builds in CI or the cloud with one |
-| `Assets/Misdirection/` | Our code and content. Everything we write lives here |
-| `tools/` | Build, install, upload and analysis scripts |
+| `Assets/Misdirection/Scripts/Core` | Game rules as engine-free C#: crowd attention, suspicion, tricks, the show, the tutorial, progress, accessibility, layout |
+| `Assets/Misdirection/Scripts/Runtime` | Unity components: hands, look source, table and room, crowd, tricks, show director, ghost hands, access tray, trick book |
+| `Assets/Misdirection/Scripts/Editor` | One-click project setup, the simulator smoke test, APK builds, trailer capture |
+| `Assets/Misdirection/Scenes/Show.unity` | The game |
+| `tools/` | Build, upload, compile-check and test scripts; C# rule tests in `tools/tests/csharp` |
 
-## Status
-
-| Day | Date | Status |
-|---|---|---|
-| 0 | Sun Nov 1 | Admin and setup. Repo started |
-| 1 | Mon Nov 2 | Unity project in the repo; code compiles against the real Unity 6000.0.66f2 + Meta v207.0.1. One-click bootstrap for settings and scenes. **Still needs:** a Unity licence to build the APK (Editor or CI), and a person with a Quest to run the spike ([runbook](docs/days/day-01.md)) |
-| 2 | Tue Nov 3 | **Code written early (Nov 2):** hand presence (tint/freeze/blend), sticky pinch grip, table calibration, servante, coin, ditch practice with a live 19/20 score and logs. Compiles against the real SDK; 21 unit tests on the core rules. Needs on-device tuning ([runbook](docs/days/day-02.md)) |
-| 3 | Wed Nov 4 | Crowd attention model: where you look, they look; eye contact locks; staring backfires; flourishes and sounds; Tourist/Kid/Skeptic/Filmer/Regular; cones, suspicion. Greybox spectators with head/eye look-at and Magician's Eye cones; ditches report who saw them. 39 core tests. Needs on-device tuning ([runbook](docs/days/day-03.md)) |
-| 4 | Thu Nov 5 | **Code written early (Nov 4):** Trick 1 (show, misdirect, ditch, empty-hand reveal, steal, produce from a spectator's ear), amazement and tips, applause/gasp/heckle, Show.unity. 48 core tests. Fun-gate playtest script and go/pivot sheet ([runbook](docs/days/day-04.md)) |
-| 5 | Fri Nov 6 | **Code written early (Nov 4):** table found from the Quest room scan (MRUK) or the palms gesture, remembered between sessions with a spatial anchor; crowd placed on open floor around real walls and furniture, arc tightens in small rooms. Builds now run on Windows without admin ([runbook](docs/days/day-05.md)) |
-| 6 | Sat Nov 7 | **Code written early (Nov 6):** Trick 2, the coin under the cup (load at the cup's base, show the hand empty, lift the cup); shared reveal scoring; Show.unity alternates Trick 1 and Trick 2. First debug APK built locally on Nov 6 ([runbook](docs/days/day-06.md)) |
-| 7 | Sun Nov 8 | **Code written early (Nov 6):** readable crowd: faces (brows, mouth), arms (fold, clap, point, hands up), lean, accessories, 3-D murmurs, claps, gasps and "hm!"; reveals play through the crowd. Runs in the Meta XR Simulator smoke test ([runbook](docs/days/day-07.md)) |
-| 8 | Mon Nov 9 | Slipped; the show flow landed on Day 9 |
-| 9 | Tue Nov 10 | **Gate 3, feature freeze.** The show has a start and an end: first-launch tutorial with the Kid and ghost mentor hands, three acts with a growing crowd, bow with tips and stars, walk-off after 3 busts, pick up the coin to go again; pause when both hands leave or focus is lost. 94 core tests. Simulator smoke test passes (tutorial starts with the Kid; pause works). Hands-on check and fresh-eyes test pending ([runbook](docs/days/day-09.md)) |
-| 10 | Wed Nov 11 | **Code written Nov 13:** a reason to come back, saved on the device only (the cut rule: no Platform SDK). A new seeded crowd and a challenge every calendar day; the Regular returns from day two and remembers your last show ("Same as yesterday!"); a trick book with mastery stars at the bow; days played and streaks. 148 core tests. Not yet run in the simulator ([runbook](docs/days/day-10.md)) |
-| 11 | Thu Nov 12 | **Accessibility (written Nov 13):** one-handed play that switches itself on (one-palm table, one-hand pause and resume, one ghost hand on your side), relaxed timing, captions for the crowd's sounds, an Access Tray toggled by looking for 1.5 s or by a poke, high contrast, and an optional voice "Look!" that asks for the microphone only when switched on (Unity no longer prompts for permissions at startup). 143 core tests, including both tricks and a whole show walked through with one hand. Simulator check and one-hand playtest pending ([runbook](docs/days/day-11.md)) |
-| 12 | Fri Nov 13 | **Code written Nov 13:** Quest 3/3S performance by construction (shared materials on shaders that ship, which also fixes spectators not drawing in a player build; no per-frame garbage; URP and headset settings; a frame-time log), FoV-aware text that eases into the 70°×66° glasses view when you look away, and gaze through Meta's Interaction SDK (spectator faces are ISDK gaze interactables, with our own test as fallback). 122 core tests. Not yet run in the Editor or on a headset ([runbook](docs/days/day-12.md)) |
-
-## Getting started
-
-1. Install Unity **6000.0.66f2** (Unity 6) with Android Build Support (OpenJDK, Android SDK & NDK).
-2. Unity Hub → Add project from disk → this folder. Packages (Meta XR SDK v207.0.1) import on first open.
-3. **Misdirection → Setup → Run Project Bootstrap** configures the project and creates the scenes. Then follow [docs/days/day-01.md](docs/days/day-01.md).
-
-## Tools
+### Build and test
 
 ```bash
-tools/build_apk.sh                 # signed release APK -> Builds/Android/ (Editor must be closed)
-tools/build_apk.sh --dev           # development build
-tools/install_quest.sh             # install + launch the latest APK on the connected headset
-tools/upload_competition.sh "msg"  # upload the latest release APK to the "Competition" channel
-tools/pull_logs.sh spike alice     # pull tracking-spike CSVs from the headset and analyse them
-tools/pull_logs.sh ditch alice     # same for Day 2 ditch-practice logs
-python3 -m unittest discover -s tools/tests -t .   # all tests: analysis + the game's core C# rules under Mono
-
-# No Unity Hub needed (Linux / CI / cloud sessions):
-python3 tools/install_unity.py --dest ~/unity                # editor + Android toolchain, as Hub would (Linux or Windows)
-python3 tools/unity_compile_check.py --unity ~/unity/Editor  # compile everything, no licence needed
-UNITY_HOME=~/unity tools/unity_batch.sh all                  # bootstrap + APK (needs a Unity licence)
+python -m unittest discover -s tools/tests -t .   # every game rule (C#) plus the tool tests
+tools/sim_smoke.sh                                # play Show.unity in Meta XR Simulator, write a report
+tools/build_apk.sh                                # signed release APK (needs a keystore in secrets/)
 ```
 
-The Unity Editor also has a **Misdirection** menu with the same builds plus Day 1 scene helpers.
+Open the project with Unity 6000.0.66f2, then run **Misdirection → Setup → Run Project Bootstrap** once.
 
-## House rules
+## Licence
 
-- Hands only. Every build must be playable start to finish with the controllers switched off.
-- Never commit keystores, app secrets or `secrets/`. Back up the keystore: losing it means you can never update the app.
-- Keep Meta XR SDK at v207. Do not upgrade mid-sprint.
-- Keep a dated commit history. It is our evidence that this is a New Experience built inside the competition window.
+MIT. See [LICENSE](LICENSE).
