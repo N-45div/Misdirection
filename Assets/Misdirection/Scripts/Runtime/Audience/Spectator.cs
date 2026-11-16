@@ -118,6 +118,7 @@ namespace Misdirection.Audience
             UpdateMarker(viewer);
 
             float covered = hasSecret ? mind.Coverage(secretPoint.ToNumerics()) : 0f;
+            cone.Viewer = viewer;
             cone.Show(EyesPosition, mind.ConeTarget.ToUnity(), mind.Profile.ConeHalfAngle, covered, mind.EyeContact);
         }
 
@@ -212,6 +213,9 @@ namespace Misdirection.Audience
 
         public bool Visible { get; set; }
 
+        /// <summary>The player's eyes: a cone whose open end comes near them fades, so it never fills the view.</summary>
+        public Vector3 Viewer { get; set; }
+
         private void Awake()
         {
             MeshFilter filter = gameObject.AddComponent<MeshFilter>();
@@ -231,7 +235,9 @@ namespace Misdirection.Audience
                 return;
             }
             Vector3 axis = target - apex;
-            float length = Mathf.Max(0.3f, axis.magnitude + 0.15f);
+            // On eye contact the target is the player's own face: stop short of it, or the cone wraps
+            // over the player's view and washes the whole scene in its colour.
+            float length = eyeContact ? Mathf.Max(0.3f, axis.magnitude - 0.35f) : Mathf.Max(0.3f, axis.magnitude);
             if (axis.sqrMagnitude < 1e-6f)
             {
                 return;
@@ -244,6 +250,12 @@ namespace Misdirection.Audience
             // Day 11: high contrast makes the cone brighter and more opaque. Day 12: one shared
             // material, tinted through a property block only when the colour changes.
             Color wanted = AccessSettings.ConeColor(Color.Lerp(calm, new Color(1f, 0.15f, 0.1f, 0.28f), secretCoverage));
+            // Seen end-on from close by (aimed at the player's hands or face), the open end reads as a
+            // tinted disc over the whole view: fade it out as it nears the player's eyes.
+            Vector3 end = apex + axis.normalized * length;
+            float near = Vector3.Distance(Viewer, end);
+            wanted.a *= Mathf.Lerp(0.35f, 1f, Mathf.Clamp01((near - 0.35f) / 0.6f));
+            wanted.a = Mathf.Round(wanted.a * 200f) / 200f;
             if (!hasTint || wanted != tint)
             {
                 hasTint = true;
