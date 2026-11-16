@@ -74,3 +74,6 @@ Assets/Resources/DevAgentSettings.asset.meta
 .utmp/
 Assets/Resources/PerformanceTestRun*
 Assets/StreamingAssets.meta
+
+# Internal planning docs: kept locally, not published
+docs/
