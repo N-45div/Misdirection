@@ -106,7 +106,8 @@ namespace Misdirection.Tricks
             shownAmazement = amazement;
             shownCrowdStamp = crowdStamp;
 
-            string crowdLine = hasCrowd ? "\n<size=55%>" + crowd.Summary() + "</size>" : "";
+            // The per-spectator readout (focus, suspicion %) was a debug aid; the crowd shows it on their faces.
+            string crowdLine = "";
             string lastLine = last.Kind != null ? "   Last: " + last.Reaction + " (" + amazement + "%)" : "";
             SetHud("<b>" + prompt + "</b>\n<size=70%>Tips: " + tips + lastLine + "</size>" + crowdLine);
             promptStale = false;
