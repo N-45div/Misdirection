@@ -54,6 +54,7 @@ namespace Misdirection.Tricks
 
         public CupTrick Trick { get { return trick; } }
         public CoinActor Coin { get { return coin; } }
+        public CupActor Cup { get { return cup; } }
 
         /// <summary>Day 11 access hook: the trick's live timings, so relaxed timing can scale them.</summary>
         public CupTrickSettings Settings { get { return trickSettings; } }

@@ -64,6 +64,13 @@ namespace Misdirection.Hands
         /// <summary>Unit vector out of the palm (last tracked value; zero until the knuckles are known).</summary>
         public Vector3 PalmNormal { get; private set; }
 
+        /// <summary>
+        /// Scripted input for trailer capture in the Editor (see Misdirection.Trailer.TrailerAutopilot).
+        /// When set, it stands in for OVRHand's raw data only: presence, smoothing, freezing and every
+        /// game rule downstream still run as they do for real hands. Null in normal play.
+        /// </summary>
+        public ScriptedHandInput Scripted { get; set; }
+
         public void Configure(HandId handSide, OVRHand ovrHand, OVRSkeleton ovrSkeleton)
         {
             side = handSide;
@@ -102,6 +109,19 @@ namespace Misdirection.Hands
         private void LateUpdate()
         {
             double now = Time.timeAsDouble;
+            if (Scripted != null)
+            {
+                Tracked = Scripted.Tracked;
+                HighConfidence = Tracked;
+                presence.Update(now, Tracked, HighConfidence);
+                if (Tracked)
+                {
+                    ReadScripted(Scripted);
+                }
+                UpdateStablePose();
+                UpdateIndicator();
+                return;
+            }
             Tracked = hand != null && hand.IsTracked;
             HighConfidence = Tracked && hand.HandConfidence == OVRHand.TrackingConfidence.High;
             presence.Update(now, Tracked, HighConfidence);
@@ -161,6 +181,19 @@ namespace Misdirection.Hands
             if (presence.State == HandPresenceState.Tracked || presence.State == HandPresenceState.Uncertain)
             {
                 frozenWrist = wrist;
+            }
+        }
+
+        private void ReadScripted(ScriptedHandInput s)
+        {
+            LiveWrist = s.Wrist;
+            PinchPoint = s.PinchPoint;
+            PalmNormal = s.Wrist.rotation * Vector3.down;
+            palmOffsetLocal = new Vector3(0f, -0.02f, 0.06f);
+            Shape = HandShape.Pinch(s.Pinch, s.ThumbIndexGap, s.Openness);
+            if (presence.State == HandPresenceState.Tracked || presence.State == HandPresenceState.Uncertain)
+            {
+                frozenWrist = s.Wrist;
             }
         }
 
@@ -293,5 +326,19 @@ namespace Misdirection.Hands
                 case OVRSkeleton.BoneId.Hand_Ring1: ringKnuckle = t; break;
             }
         }
+    }
+
+    /// <summary>One frame of scripted hand input (trailer capture only). Palm faces -Y of <see cref="Wrist"/>.</summary>
+    public sealed class ScriptedHandInput
+    {
+        public bool Tracked;
+        public Pose Wrist = Pose.identity;
+        public Vector3 PinchPoint;
+        /// <summary>0..1, like OVRHand's index pinch strength.</summary>
+        public float Pinch;
+        /// <summary>Thumb–index tip distance in metres.</summary>
+        public float ThumbIndexGap = 0.06f;
+        /// <summary>0 fist .. 1 flat open hand.</summary>
+        public float Openness = 1f;
     }
 }

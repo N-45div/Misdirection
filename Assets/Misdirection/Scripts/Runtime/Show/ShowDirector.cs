@@ -57,6 +57,9 @@ namespace Misdirection.Show
         private bool pendingTrickReset;
         private bool hasInputFocus = true;
         private bool pausedApplied;
+
+        /// <summary>Trailer capture in the Editor with XR off: Meta's SDK reports no input focus there.</summary>
+        public bool IgnoreInputFocus { get; set; }
         private float savedTimeScale = 1f;
         private double idleSince = -1;
 
@@ -227,7 +230,7 @@ namespace Misdirection.Show
             bool right = rightHand != null && rightHand.Tracked;
             // Day 11 access hook: a one-handed player resumes with their one hand back.
             pause.OneHanded = AccessSettings.OneHanded;
-            if (pause.Update(real, left, right, hasInputFocus))
+            if (pause.Update(real, left, right, hasInputFocus || IgnoreInputFocus))
             {
                 ApplyPause(pause.Paused);
                 Debug.Log("[Misdirection] Show: " + (pause.Paused ? "paused (" + pause.Reason + ")" : "resumed"));
