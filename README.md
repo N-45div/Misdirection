@@ -58,7 +58,7 @@ Nobody on the team has a Quest. We built and tested with:
 - **An automated simulator smoke test** after every change. It checks for errors, the table, the crowd, the show stage, draw cost and the glasses-sized view.
 - **Unit tests** for every game rule.
 
-The demo video shows the real game running in the Unity Editor with **scripted head and hand input**; stand-in hands and a simple room take the place of your own hands and passthrough. Every trick, reaction and pause in it ran through the game's real code (`Assets/Misdirection/Scripts/Runtime/Trailer/`).
+The demo video shows the real game with **scripted head and hand input**: most shots were captured in the Unity Editor, and the "Under the hood" shot is the same performance running in **Meta XR Simulator** (its window, its XR runtime). Stand-in hands and a simple room take the place of your own hands and passthrough. Every trick, reaction and pause in it ran through the game's real code (`Assets/Misdirection/Scripts/Runtime/Trailer/`).
 
 Release builds are signed and pass Meta's upload validation and security checks.
 
