@@ -31,8 +31,10 @@ namespace Misdirection.Trailer
         public const string SessionKey = "misdirection.trailer.session";
         public const string OutKey = "misdirection.trailer.out";
         public const string DoneKey = "misdirection.trailer.done";
+        /// <summary>Session value for a run inside Meta XR Simulator: real time, the simulator renders the view.</summary>
+        public const string SimulatorSession = "S";
         private const int Fps = 30;
-        private static readonly Vector3 Eyes = new Vector3(0f, 1.15f, 0f);
+        private Vector3 eyes = new Vector3(0f, 1.15f, 0f);
         private static readonly Vector3 PinchLocal = new Vector3(0f, -0.025f, 0.12f);
 
         private OVRCameraRig rig;
@@ -42,6 +44,10 @@ namespace Misdirection.Trailer
         private string outDir;
         private int frame;
         private bool recording;
+        // Simulator run: no frame dump and no fixed capture rate; the screen is recorded outside Unity,
+        // so the clock is real time and the XR runtime owns the camera.
+        private bool sim;
+        private float simStart;
         private readonly List<string> marks = new List<string>();
         private readonly Dictionary<string, int> open = new Dictionary<string, int>();
 
@@ -71,7 +77,11 @@ namespace Misdirection.Trailer
 
         private void Awake()
         {
-            Time.captureFramerate = Fps;
+            sim = PlayerPrefs.GetString(SessionKey, "") == SimulatorSession;
+            if (!sim)
+            {
+                Time.captureFramerate = Fps;
+            }
             // Keep playing when the Editor window isn't focused (the person may be using the PC).
             Application.runInBackground = true;
             outDir = PlayerPrefs.GetString(OutKey, "D:/video/capture/session");
@@ -86,22 +96,26 @@ namespace Misdirection.Trailer
             {
                 show.IgnoreInputFocus = true;
             }
-            // No room scan in the Editor: MRUK would load one of its sample rooms (furniture where our
-            // stand-in table is) and re-place the crowd mid-show. The stand-in room below replaces it.
-            foreach (RoomTableFinder finder in FindObjectsByType<RoomTableFinder>(FindObjectsInactive.Include, FindObjectsSortMode.None))
             {
-                finder.enabled = false;
+                // No room scan: in the Editor MRUK would load one of its sample rooms (furniture where our
+                // stand-in table is) and re-place the crowd mid-show; in the simulator its world lock would
+                // pin the camera to the simulator's headset, which can't be steered from outside (tested:
+                // neither its RPC keys nor real key presses move it). The stand-in room replaces it.
+                foreach (RoomTableFinder finder in FindObjectsByType<RoomTableFinder>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                {
+                    finder.enabled = false;
+                }
+                Meta.XR.MRUtilityKit.MRUK mruk = FindFirstObjectByType<Meta.XR.MRUtilityKit.MRUK>();
+                if (mruk != null)
+                {
+                    mruk.gameObject.SetActive(false);
+                }
+                if (crowd != null)
+                {
+                    crowd.SetRoom(null);
+                }
+                BuildRoom();
             }
-            Meta.XR.MRUtilityKit.MRUK mruk = FindFirstObjectByType<Meta.XR.MRUtilityKit.MRUK>();
-            if (mruk != null)
-            {
-                mruk.gameObject.SetActive(false);
-            }
-            if (crowd != null)
-            {
-                crowd.SetRoom(null);
-            }
-            BuildRoom();
             Material skin = SharedMaterials.Lit(new Color(0.86f, 0.68f, 0.56f));
             foreach (TrackedHand h in FindObjectsByType<TrackedHand>(FindObjectsSortMode.None))
             {
@@ -117,6 +131,13 @@ namespace Misdirection.Trailer
             if (cam == null)
             {
                 Debug.LogError("[Trailer] no camera");
+                return;
+            }
+            if (sim)
+            {
+                simStart = Time.unscaledTime;
+                StartCoroutine(Capture());
+                StartCoroutine(Run());
                 return;
             }
             cam.fieldOfView = 60f;
@@ -137,13 +158,27 @@ namespace Misdirection.Trailer
             headRot = Quaternion.Slerp(headFrom, headTo, k);
             // A little breathing so the view never looks locked off.
             Quaternion sway = Quaternion.Euler(Mathf.Sin(T * 0.7f) * 0.35f, Mathf.Sin(T * 0.45f) * 0.5f, 0f);
-            if (rig != null)
+            if (rig != null && sim && cam != null)
             {
-                rig.transform.SetPositionAndRotation(Eyes, headRot * sway);
+                // The simulator poses the eye inside the rig (its own height and facing). Move the rig the way
+                // a game's locomotion does, cancelling that offset so the eye lands at eyes, looking as scripted.
+                Transform r = rig.transform;
+                Quaternion inv = Quaternion.Inverse(r.rotation);
+                Quaternion localRot = inv * cam.transform.rotation;
+                Vector3 localPos = inv * (cam.transform.position - r.position);
+                Quaternion rot = headRot * sway * Quaternion.Inverse(localRot);
+                r.SetPositionAndRotation(eyes - rot * localPos, rot);
+            }
+            else if (rig != null)
+            {
+                rig.transform.SetPositionAndRotation(eyes, headRot * sway);
             }
             if (right != null) right.Apply();
             if (left != null) left.Apply();
         }
+
+        /// <summary>Where the eye really is: the simulator's headset, or the scripted eye in a capture.</summary>
+        private Vector3 EyeNow { get { return sim && cam != null ? cam.transform.position : eyes; } }
 
         private IEnumerator Capture()
         {
@@ -159,7 +194,14 @@ namespace Misdirection.Trailer
                     RenderTexture.active = prev;
                     File.WriteAllBytes(Path.Combine(outDir, "f_" + frame.ToString("D6") + ".jpg"), readback.EncodeToJPG(93));
                 }
-                frame++;
+                if (sim)
+                {
+                    frame = Mathf.FloorToInt((Time.unscaledTime - simStart) * Fps);
+                }
+                else
+                {
+                    frame++;
+                }
             }
         }
 
@@ -170,22 +212,39 @@ namespace Misdirection.Trailer
             yield return Wait(0.5f);
             recording = true;
             Mark("03_tutorial_game");
-            Log("setup: ghost hands demonstrate, then palms on the table");
             right.Hide(); left.Hide();
             yield return Wait(3.0f);
 
-            // Bring both hands in and rest them flat (the real calibration gesture).
-            Vector3 lp = new Vector3(-0.12f, 0.752f, 0.36f), rp = new Vector3(0.12f, 0.752f, 0.36f);
-            Quaternion flat = Quaternion.LookRotation(Vector3.forward, Vector3.up);
-            left.Show(lp + new Vector3(-0.05f, 0.10f, -0.20f), flat, HandPose.Flat, 0f, 1f);
-            right.Show(rp + new Vector3(0.05f, 0.10f, -0.20f), flat, HandPose.Flat, 0f, 1f);
-            StartCoroutine(left.MoveWrist(lp, flat, 1.2f, this));
-            yield return right.MoveWrist(rp, flat, 1.2f, this);
-            yield return Until(() => table != null && table.Calibrated, 8f, "table calibrated");
-            Log("table from palms");
-            StartCoroutine(left.MoveWrist(lp + new Vector3(-0.08f, 0.06f, -0.12f), flat, 0.8f, this));
-            yield return right.MoveWrist(rp + new Vector3(0.10f, 0.06f, -0.10f), flat, 0.8f, this);
-            left.Hide();
+            // Positions in the table's own frame (x right, y up, z away from the player), so the same
+            // script works at the stand-in table and at a room-scan table facing any direction.
+            Quaternion flat = Quaternion.LookRotation(TableForward(), Vector3.up);
+            if (table != null && table.Calibrated)
+            {
+                Log("table from the room scan (" + table.Source + "); no palms needed");
+            }
+            else
+            {
+                // No usable scan: rest both hands flat (the real calibration gesture).
+                Log("setup: palms on the table");
+                Vector3 lp = MatWorld(-0.12f, 0.012f, 0.06f), rp = MatWorld(0.12f, 0.012f, 0.06f);
+                left.Show(lp + flat * new Vector3(-0.05f, 0.10f, -0.20f), flat, HandPose.Flat, 0f, 1f);
+                right.Show(rp + flat * new Vector3(0.05f, 0.10f, -0.20f), flat, HandPose.Flat, 0f, 1f);
+                StartCoroutine(left.MoveWrist(lp, flat, 1.2f, this));
+                yield return right.MoveWrist(rp, flat, 1.2f, this);
+                yield return Until(() => table != null && table.Calibrated, 8f, "table calibrated");
+                Log("table from palms");
+                StartCoroutine(left.MoveWrist(lp + flat * new Vector3(-0.08f, 0.06f, -0.12f), flat, 0.8f, this));
+                yield return right.MoveWrist(rp + flat * new Vector3(0.10f, 0.06f, -0.10f), flat, 0.8f, this);
+                left.Hide();
+                flat = Quaternion.LookRotation(TableForward(), Vector3.up);
+            }
+            if (!right.Visible)
+            {
+                // Bring the show hand in to rest beside the mat.
+                Vector3 rest = MatWorld(0.16f, 0.08f, -0.02f);
+                right.Show(rest + flat * new Vector3(0.04f, 0.06f, -0.18f), flat, HandPose.Open, 0f, 1f);
+                yield return right.MoveWrist(rest, flat, 0.9f, this);
+            }
             yield return Until(() => show.Flow.Stage == ShowStage.Tutorial && Kid() != null, 6f, "tutorial with the Kid");
             LookAt(MatWorld(0f, 0f, 0.24f), 0.5f);
             yield return Wait(2.2f);
@@ -219,6 +278,12 @@ namespace Misdirection.Trailer
             // Act 1: the rule, the hook, the production.
             Mark("02_rule_game");
             Spectator tourist = Find(Archetype.Tourist), kid = Kid(), skeptic = Find(Archetype.Skeptic);
+            if (tourist == null || kid == null)
+            {
+                Log("act 1 crowd missing (stage " + show.Flow.Stage + "): stopping here");
+                Finish();
+                yield break;
+            }
             yield return PickUpAndShow();
             LookAt(tourist.EyesPosition, 0.45f); yield return Wait(1.3f);
             LookAt(kid.EyesPosition, 0.45f); yield return Wait(1.3f);
@@ -295,7 +360,7 @@ namespace Misdirection.Trailer
             yield return right.MovePinch(c + Vector3.up * 0.006f, Reach(35f), HandPose.Open, 0f, 1f, 0.45f, this);
             yield return right.SetGrip(1f, 0.2f, HandPose.Pinch, 0.25f, this);
             yield return Until(() => cup ? cupTrick.Trick.Phase == CupPhase.Showing : vanish.Trick.Phase == TrickPhase.Showing, 3f, "picked up");
-            Vector3 up = Vector3.Lerp(c, Eyes, 0.25f) + Vector3.up * 0.22f;
+            Vector3 up = Vector3.Lerp(c, EyeNow, 0.25f) + Vector3.up * 0.22f;
             yield return right.MovePinch(up, Reach(10f), HandPose.Pinch, 1f, 0.2f, 0.8f, this);
             yield return Until(() => cup ? cupTrick.Trick.Phase == CupPhase.Misdirect : vanish.Trick.Phase == TrickPhase.Misdirect, 3f, "shown");
         }
@@ -329,7 +394,7 @@ namespace Misdirection.Trailer
 
         private void LookAt(Vector3 world, float seconds)
         {
-            Vector3 dir = world - Eyes;
+            Vector3 dir = world - EyeNow;
             if (dir.sqrMagnitude < 1e-6f) return;
             headFrom = headRot;
             headTo = Quaternion.LookRotation(dir.normalized, Vector3.up);
@@ -387,7 +452,7 @@ namespace Misdirection.Trailer
 
         private Vector3 CrowdCentre()
         {
-            if (crowd == null || crowd.Spectators.Count == 0) return Eyes + Vector3.forward;
+            if (crowd == null || crowd.Spectators.Count == 0) return eyes + Vector3.forward;
             Vector3 sum = Vector3.zero;
             foreach (Spectator s in crowd.Spectators) sum += s.EyesPosition;
             return sum / crowd.Spectators.Count - Vector3.up * 0.25f;
@@ -466,6 +531,8 @@ namespace Misdirection.Trailer
 
             public Vector3 PinchPointNow() { return pinchPoint; }
 
+            public bool Visible { get { return input.Tracked; } }
+
             public void Hide() { input.Tracked = false; }
 
             public void Show(Vector3 at, Quaternion rotation, HandPose p, float pinch, float openness)
@@ -507,9 +574,11 @@ namespace Misdirection.Trailer
                 HandPose fromPose = pose;
                 float fromPinch = input.Pinch, fromOpen = input.Openness;
                 int frames = Mathf.Max(1, Mathf.RoundToInt(seconds * Fps));
-                for (int i = 1; i <= frames; i++)
+                int start = owner.frame;
+                for (int i = 1; ; i = owner.sim ? Mathf.Max(i, owner.frame - start) : i + 1)
                 {
-                    float k = i / (float)frames;
+                    // Capture runs one step per frame; a simulator run follows the real-time clock.
+                    float k = Mathf.Clamp01(i / (float)frames);
                     k = k * k * (3f - 2f * k);
                     pinchPoint = Vector3.Lerp(from, target, k);
                     rot = Quaternion.Slerp(fromRot, rotation, k);
@@ -518,6 +587,10 @@ namespace Misdirection.Trailer
                     input.Openness = Mathf.Lerp(fromOpen, openness, k);
                     input.ThumbIndexGap = Mathf.Lerp(0.06f, 0.01f, input.Pinch);
                     yield return null;
+                    if (i >= frames)
+                    {
+                        break;
+                    }
                 }
             }
 

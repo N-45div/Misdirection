@@ -396,7 +396,9 @@ namespace Misdirection.EditorTools
             Errors.Add(type + ": " + message + (first.Length > 0 ? " @ " + first : ""));
         }
 
-        private static bool SimulatorActive()
+        internal const string ActivateMenuPath = ActivateMenu;
+
+        internal static bool SimulatorActive()
         {
             string runtime = Environment.GetEnvironmentVariable("XR_RUNTIME_JSON") ?? "";
             return runtime.IndexOf("MetaXRSimulator", StringComparison.OrdinalIgnoreCase) >= 0
